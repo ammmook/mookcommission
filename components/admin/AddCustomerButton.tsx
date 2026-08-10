@@ -102,6 +102,18 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
               }
             />
           </Field>
+          {/* Email spans the row so it sits directly under name + code. */}
+          <Field label="อีเมลลูกค้า" htmlFor="new-email" full>
+            <Input
+              id="new-email"
+              type="email"
+              value={form.email}
+              placeholder="name@example.com"
+              onChange={(event) =>
+                setForm({ ...form, email: event.target.value })
+              }
+            />
+          </Field>
           <Field label="ล็อต" htmlFor="new-lot" full>
             <Select
               id="new-lot"
@@ -119,6 +131,7 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
               })}
             </Select>
           </Field>
+          {/* Adjacent halves, so from `sm` these two share one row. */}
           <Field label="ประเภทงาน" htmlFor="new-type">
             <Select
               id="new-type"
@@ -133,17 +146,6 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
                 </option>
               ))}
             </Select>
-          </Field>
-          <Field label="อีเมลลูกค้า" htmlFor="new-email" full>
-            <Input
-              id="new-email"
-              type="email"
-              value={form.email}
-              placeholder="name@example.com"
-              onChange={(event) =>
-                setForm({ ...form, email: event.target.value })
-              }
-            />
           </Field>
           <Field label="จำนวนตัวละคร" htmlFor="new-characters">
             <Input
