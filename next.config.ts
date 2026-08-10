@@ -1,7 +1,11 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Pin the workspace root so Turbopack ignores lockfiles above the repo.
+  turbopack: {
+    root: path.resolve("."),
+  },
 };
 
 export default nextConfig;
