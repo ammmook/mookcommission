@@ -5,17 +5,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
+import { AdminActionError } from "./AdminStatus";
 import { lotLabel } from "@/data/lots";
 import { useAdminData } from "@/lib/store/admin-store";
 
 /** Creates a lot and closes whichever lot was previously taking queues. */
 export function CreateLotButton({ compact }: { compact?: boolean }) {
-  const { activeLot, createLot } = useAdminData();
+  const { activeLot, createLot, busy } = useAdminData();
   const [open, setOpen] = useState(false);
   const [capacity, setCapacity] = useState(10);
+  const [error, setError] = useState<string | null>(null);
 
-  const submit = () => {
-    createLot({ capacity });
+  const submit = async () => {
+    const message = await createLot({ capacity });
+    if (message) {
+      setError(message);
+      return;
+    }
     setOpen(false);
   };
 
@@ -25,6 +31,7 @@ export function CreateLotButton({ compact }: { compact?: boolean }) {
         size={compact ? "sm" : "md"}
         onClick={() => {
           setCapacity(10);
+          setError(null);
           setOpen(true);
         }}
       >
@@ -38,8 +45,8 @@ export function CreateLotButton({ compact }: { compact?: boolean }) {
         title="สร้าง Lot ใหม่"
         footer={
           <>
-            <Button size="lg" fullWidth onClick={submit}>
-              สร้าง Lot
+            <Button size="lg" fullWidth onClick={submit} disabled={busy}>
+              {busy ? "กำลังสร้าง…" : "สร้าง Lot"}
             </Button>
             <Button
               variant="outline"
@@ -69,6 +76,7 @@ export function CreateLotButton({ compact }: { compact?: boolean }) {
             }
           />
         </Field>
+        <AdminActionError message={error} />
       </Modal>
     </>
   );

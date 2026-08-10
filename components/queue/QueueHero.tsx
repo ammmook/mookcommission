@@ -7,20 +7,30 @@ import { QueueDots } from "./QueueDots";
 interface QueueHeroProps {
   customer: Customer;
   lot: Lot;
-  /** Queue number the artist is working on right now. */
-  currentQueueNumber: number;
+  /**
+   * Active, unfinished queues ahead of this one — straight from the
+   * `queue_public` view, so cancelled and completed work is already excluded.
+   */
+  queuesAhead: number;
+  /** Completed queues in the lot, from `lot_progress.done_count`. */
+  doneCount: number;
 }
 
 /**
  * The headline card on the customer queue page. It has three looks — running,
  * paused and cancelled — matching options 1b and 1c of the mockups.
  */
-export function QueueHero({ customer, lot, currentQueueNumber }: QueueHeroProps) {
+export function QueueHero({
+  customer,
+  lot,
+  queuesAhead,
+  doneCount,
+}: QueueHeroProps) {
   if (customer.state === "cancelled") return <CancelledHero customer={customer} />;
   if (customer.state === "paused") return <PausedHero customer={customer} />;
 
-  const ahead = queuesAheadLabel(customer);
-  const done = Math.max(0, currentQueueNumber - 1);
+  const ahead = queuesAheadLabel(queuesAhead);
+  const done = doneCount;
 
   return (
     <section className="relative overflow-hidden rounded-3xl bg-linear-135 from-ink to-ink-soft p-6 text-white sm:p-7 lg:px-7.5 lg:py-8">
@@ -55,7 +65,7 @@ export function QueueHero({ customer, lot, currentQueueNumber }: QueueHeroProps)
           <QueueDots
             capacity={lot.capacity}
             done={done}
-            current={currentQueueNumber}
+            current={customer.queueNumber - queuesAhead}
           />
           <span className="ml-auto font-mono text-[11px] font-medium text-nav-text">
             {lotLabel(lot).toUpperCase()} · {done}/{lot.capacity} DONE

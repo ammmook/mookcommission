@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { PaymentPill, StagePill } from "@/components/ui/StatusPill";
-import { getLot } from "@/data/lots";
 import { cn } from "@/lib/cn";
 import { queueTag } from "@/lib/format";
-import type { Customer } from "@/lib/types";
+import type { Customer, Lot } from "@/lib/types";
 
 const headings = [
   { key: "queue", label: "คิว", align: "left" },
@@ -22,9 +21,14 @@ const headings = [
 export function CustomerTable({
   customers,
   currentQueueNumber,
+  activeLotId,
+  lots,
 }: {
   customers: Customer[];
-  currentQueueNumber: number;
+  currentQueueNumber: number | null;
+  /** Only the open lot has a "NOW" row. */
+  activeLotId: string | undefined;
+  lots: Lot[];
 }) {
   return (
     <div className="overflow-hidden rounded-card border-[1.5px] border-line bg-surface">
@@ -52,9 +56,10 @@ export function CustomerTable({
           {customers.map((customer) => {
             const cancelled = customer.state === "cancelled";
             const isCurrent =
+              currentQueueNumber !== null &&
               customer.queueNumber === currentQueueNumber &&
-              customer.lotId === "lot-03";
-            const lot = getLot(customer.lotId);
+              customer.lotId === activeLotId;
+            const lot = lots.find((entry) => entry.id === customer.lotId);
 
             return (
               <tr

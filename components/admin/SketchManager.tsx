@@ -1,53 +1,130 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useState } from "react";
-import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { CardHeader } from "@/components/ui/Card";
-import type { Sketch } from "@/lib/types";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { reportError } from "@/lib/supabase/errors";
+import {
+  deleteSketch,
+  uploadSketch,
+  validateSketchFile,
+} from "@/lib/supabase/sketches";
+import { useAdminData } from "@/lib/store/admin-store";
+import type { Customer, Sketch } from "@/lib/types";
 
-/** Sketch grid with remove buttons and a mock upload tile. */
-export function SketchManager({ initial }: { initial: Sketch[] }) {
-  const [sketches, setSketches] = useState(initial);
+/**
+ * Sketch grid backed by the `sketches` bucket.
+ *
+ * Uploading writes the file first and the row second (with the file removed
+ * again if the row fails), so the gallery never shows a tile whose image is
+ * missing. See `lib/supabase/sketches.ts` for the ordering.
+ */
+export function SketchManager({ customer }: { customer: Customer }) {
+  const { refresh } = useAdminData();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const addSketch = () =>
-    setSketches((current) => [
-      ...current,
-      { id: `new-${Date.now()}`, label: `SKETCH ${current.length + 1}` },
-    ]);
+  // No local copy: the store refetches after each upload or delete, so this is
+  // always the current list.
+  const sketches = customer.sketches;
 
-  const removeSketch = (id: string) =>
-    setSketches((current) => current.filter((sketch) => sketch.id !== id));
+  const pickFiles = () => inputRef.current?.click();
+
+  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    // Reset immediately so re-picking the same file still fires a change.
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    setError(null);
+    setPending(true);
+
+    const db = supabaseBrowser();
+    let sortOrder = sketches.length;
+
+    for (const file of files) {
+      const invalid = validateSketchFile(file);
+      if (invalid) {
+        setError(`${file.name}: ${invalid}`);
+        continue;
+      }
+      try {
+        await uploadSketch(db, {
+          entryId: customer.id,
+          file,
+          label: `SKETCH ${String(sortOrder + 1).padStart(2, "0")}`,
+          sortOrder,
+        });
+        sortOrder += 1;
+      } catch (uploadError) {
+        setError(reportError(uploadError, `อัปโหลด ${file.name} ไม่สำเร็จ`));
+      }
+    }
+
+    setPending(false);
+    await refresh();
+  };
+
+  const removeSketch = async (sketch: Sketch) => {
+    setError(null);
+    setPending(true);
+    try {
+      await deleteSketch(supabaseBrowser(), sketch);
+      await refresh();
+    } catch (deleteError) {
+      setError(reportError(deleteError, "ลบภาพร่างไม่สำเร็จ"));
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <>
       <CardHeader
         title="ภาพร่าง"
-        hint={
-          <span className="font-mono">{sketches.length}</span>
-        }
+        hint={<span className="font-mono">{sketches.length}</span>}
         action={
-          <Button variant="outline" size="sm" onClick={addSketch}>
-            อัปโหลดภาพ
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={pickFiles}
+            disabled={pending}
+          >
+            {pending ? "กำลังอัปโหลด…" : "อัปโหลดภาพ"}
           </Button>
         }
+      />
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        multiple
+        hidden
+        onChange={handleFiles}
       />
 
       <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
         {sketches.map((sketch) => (
           <li key={sketch.id} className="relative">
-            <ArtPlaceholder
-              dense
-              dashed={false}
-              label={sketch.label}
-              className="aspect-3/4 rounded-xl"
+            {/* eslint-disable-next-line @next/next/no-img-element -- the bucket
+                host is user-configured, so next/image would need a build-time
+                remotePattern this project cannot know. */}
+            <img
+              src={sketch.url}
+              alt={sketch.label}
+              loading="lazy"
+              className="aspect-3/4 w-full rounded-xl border-[1.5px] border-line bg-surface-muted object-cover"
             />
             <button
               type="button"
-              onClick={() => removeSketch(sketch.id)}
+              onClick={() => void removeSketch(sketch)}
+              disabled={pending}
               aria-label={`ลบภาพร่าง ${sketch.label}`}
-              className="absolute top-1.5 right-1.5 grid size-7 cursor-pointer place-items-center rounded-full bg-ink/72 text-white transition-colors hover:bg-ink"
+              className="absolute top-1.5 right-1.5 grid size-7 cursor-pointer place-items-center rounded-full bg-ink/72 text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-55"
             >
               <X size={12} aria-hidden="true" />
             </button>
@@ -57,15 +134,25 @@ export function SketchManager({ initial }: { initial: Sketch[] }) {
         <li>
           <button
             type="button"
-            onClick={addSketch}
-            className="flex aspect-3/4 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line-dashed bg-surface-muted text-[11px] font-medium text-[#9B8B76] transition-colors hover:border-coral hover:text-coral"
+            onClick={pickFiles}
+            disabled={pending}
+            className="flex aspect-3/4 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line-dashed bg-surface-muted text-[11px] font-medium text-[#9B8B76] transition-colors hover:border-coral hover:text-coral disabled:cursor-not-allowed disabled:opacity-55"
           >
             <Plus size={18} aria-hidden="true" />
-            <span className="hidden sm:inline">ลากไฟล์มาวาง</span>
+            <span className="hidden sm:inline">เลือกไฟล์ภาพ</span>
             <span className="sm:hidden">เพิ่ม</span>
           </button>
         </li>
       </ul>
+
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 text-[11.5px] font-medium text-coral-text"
+        >
+          {error}
+        </p>
+      ) : null}
     </>
   );
 }

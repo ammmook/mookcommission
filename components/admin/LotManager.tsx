@@ -7,6 +7,7 @@ import { LotManageCard } from "./LotManageCard";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
+import { AdminActionError, AdminLoadError, AdminScreenSkeleton } from "./AdminStatus";
 import { lotLabel } from "@/data/lots";
 import { queueTag } from "@/lib/format";
 import { useAdminData, type DeleteLotPlan } from "@/lib/store/admin-store";
@@ -25,6 +26,9 @@ export function LotManager() {
     updateLot,
     deleteLot,
     removeCustomer,
+    busy,
+    loading,
+    loadError,
   } = useAdminData();
 
   const [creating, setCreating] = useState(false);
@@ -36,15 +40,18 @@ export function LotManager() {
   const [removingCustomer, setRemovingCustomer] = useState<Customer | null>(
     null,
   );
+  const [error, setError] = useState<string | null>(null);
 
   const openEdit = (lot: Lot) => {
     setEditing(lot);
     setEditCapacity(lot.capacity);
+    setError(null);
   };
 
   const openDelete = (lot: Lot) => {
     setDeleting(lot);
     setDeletePlan("");
+    setError(null);
   };
 
   const deletingRoster = deleting ? customersInLot(deleting.id) : [];
@@ -55,15 +62,22 @@ export function LotManager() {
     : [];
   const deleteReady = deletingRoster.length === 0 || deletePlan !== "";
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting || !deleteReady) return;
     const plan: DeleteLotPlan =
       deletingRoster.length === 0 || deletePlan === DELETE_CUSTOMERS
         ? { kind: "delete-customers" }
         : { kind: "reassign", toLotId: deletePlan };
-    deleteLot(deleting.id, plan);
+    const message = await deleteLot(deleting.id, plan);
+    if (message) {
+      setError(message);
+      return;
+    }
     setDeleting(null);
   };
+
+  if (loading) return <AdminScreenSkeleton />;
+  if (loadError) return <AdminLoadError message={loadError} />;
 
   return (
     <>
@@ -111,12 +125,17 @@ export function LotManager() {
             <Button
               size="lg"
               fullWidth
-              onClick={() => {
-                createLot({ capacity: newCapacity });
+              disabled={busy}
+              onClick={async () => {
+                const message = await createLot({ capacity: newCapacity });
+                if (message) {
+                  setError(message);
+                  return;
+                }
                 setCreating(false);
               }}
             >
-              สร้าง Lot
+              {busy ? "กำลังสร้าง…" : "สร้าง Lot"}
             </Button>
             <Button
               variant="outline"
@@ -145,6 +164,7 @@ export function LotManager() {
             }
           />
         </Field>
+        <AdminActionError message={error} />
       </Modal>
 
       {/* Edit capacity ----------------------------------------------------- */}
@@ -158,14 +178,21 @@ export function LotManager() {
               size="lg"
               fullWidth
               disabled={
-                editing !== null && editCapacity < filledFor(editing.id)
+                busy || (editing !== null && editCapacity < filledFor(editing.id))
               }
-              onClick={() => {
-                if (editing) updateLot(editing.id, { capacity: editCapacity });
+              onClick={async () => {
+                if (!editing) return;
+                const message = await updateLot(editing.id, {
+                  capacity: editCapacity,
+                });
+                if (message) {
+                  setError(message);
+                  return;
+                }
                 setEditing(null);
               }}
             >
-              บันทึก
+              {busy ? "กำลังบันทึก…" : "บันทึก"}
             </Button>
             <Button
               variant="outline"
@@ -197,6 +224,7 @@ export function LotManager() {
             ลดจำนวนคิวต่ำกว่านี้ไม่ได้
           </p>
         ) : null}
+        <AdminActionError message={error} />
       </Modal>
 
       {/* Delete lot -------------------------------------------------------- */}
@@ -218,10 +246,10 @@ export function LotManager() {
               variant="danger-solid"
               size="lg"
               fullWidth
-              disabled={!deleteReady}
+              disabled={!deleteReady || busy}
               onClick={confirmDelete}
             >
-              ยืนยันลบล็อต
+              {busy ? "กำลังลบ…" : "ยืนยันลบล็อต"}
             </Button>
             <Button
               variant="outline"
@@ -279,6 +307,7 @@ export function LotManager() {
             ) : null}
           </>
         )}
+        <AdminActionError message={error} />
       </Modal>
 
       {/* Remove one customer ----------------------------------------------- */}
@@ -302,12 +331,18 @@ export function LotManager() {
               variant="danger-solid"
               size="lg"
               fullWidth
-              onClick={() => {
-                if (removingCustomer) removeCustomer(removingCustomer.id);
+              disabled={busy}
+              onClick={async () => {
+                if (!removingCustomer) return;
+                const message = await removeCustomer(removingCustomer.id);
+                if (message) {
+                  setError(message);
+                  return;
+                }
                 setRemovingCustomer(null);
               }}
             >
-              ยืนยันลบลูกค้า
+              {busy ? "กำลังลบ…" : "ยืนยันลบลูกค้า"}
             </Button>
             <Button
               variant="outline"
@@ -328,6 +363,7 @@ export function LotManager() {
           และข้อมูลงานทั้งหมดจะถูกลบถาวร
           หากต้องการเก็บประวัติไว้ให้ใช้ “ยกเลิกงาน” ในหน้าลูกค้าแทน
         </p>
+        <AdminActionError message={error} />
       </Modal>
     </>
   );

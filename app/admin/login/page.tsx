@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
@@ -33,7 +34,10 @@ export default function AdminLoginPage() {
             เข้าสู่ระบบเพื่อจัดการคิวและลูกค้า
           </p>
 
-          <AdminLoginForm className="mt-6" />
+          {/* The form reads `?next=` via useSearchParams, which needs a boundary. */}
+          <Suspense fallback={<div className="mt-6 h-59" />}>
+            <AdminLoginForm className="mt-6" />
+          </Suspense>
 
           <p className="mt-4 text-[11.5px] text-subtle">
             <a href="#" className="text-violet hover:underline">

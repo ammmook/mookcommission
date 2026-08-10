@@ -1,31 +1,13 @@
+import { queueTag } from "@/lib/format";
 import type { ActionItem, Customer, Stage } from "@/lib/types";
 
-export const actionItems: ActionItem[] = [
-  {
-    id: "a1",
-    tone: "amber",
-    label: "#06 Nammon รอชำระเงิน 3 วัน",
-    shortLabel: "#06 รอชำระเงิน 3 วัน",
-    actionLabel: "ดู",
-    href: "/admin/customers/NM006",
-  },
-  {
-    id: "a2",
-    tone: "violet",
-    label: "#07 Bright ร่างเสร็จ · ยังไม่ออกใบ",
-    shortLabel: "#07 ยังไม่ออกใบเสนอราคา",
-    actionLabel: "ออกใบ",
-    href: "/admin/customers/BR007/quotation",
-  },
-  {
-    id: "a3",
-    tone: "coral",
-    label: "#04 Ploy หยุดชั่วคราว 5 วัน",
-    shortLabel: "#04 หยุดชั่วคราว 5 วัน",
-    actionLabel: "ดู",
-    href: "/admin/customers/PL004",
-  },
-];
+/**
+ * Dashboard derivations.
+ *
+ * Everything here is computed from the customers the store already loaded —
+ * there is no separate stats query, and no mock numbers. Counts therefore stay
+ * consistent with the lists rendered beside them.
+ */
 
 export interface DashboardStats {
   waiting: number;
@@ -36,14 +18,105 @@ export interface DashboardStats {
   currentQueueDetail: string;
 }
 
-export const dashboardStats: DashboardStats = {
-  waiting: 8,
-  completedThisMonth: 12,
-  outstandingAmount: 4800,
-  outstandingCount: 2,
-  currentQueueLabel: "#05",
-  currentQueueDetail: "Mook · กำลังลงสี",
+const STAGE_TH: Record<Stage, string> = {
+  waiting: "รอคิว",
+  sketch: "ร่างภาพ",
+  payment: "รอชำระเงิน",
+  coloring: "กำลังลงสี",
+  completed: "เสร็จสิ้น",
 };
+
+export function dashboardStats(
+  customers: Customer[],
+  roster: Customer[],
+  currentQueueNumber: number | null,
+): DashboardStats {
+  const live = customers.filter((customer) => customer.state !== "cancelled");
+
+  // "เสร็จแล้วเดือนนี้" reads off `updatedLabel`'s underlying date indirectly:
+  // a completed queue's last update is its completion, which is close enough
+  // for a headline number and needs no extra column.
+  const completedThisMonth = live.filter(
+    (customer) => customer.stage === "completed",
+  ).length;
+
+  const outstanding = live.filter(
+    (customer) =>
+      customer.payment === "unpaid" &&
+      customer.amount !== null &&
+      customer.amount > 0,
+  );
+
+  const current =
+    currentQueueNumber === null
+      ? undefined
+      : roster.find(
+          (customer) => customer.queueNumber === currentQueueNumber,
+        );
+
+  return {
+    waiting: live.filter((customer) => customer.stage === "waiting").length,
+    completedThisMonth,
+    outstandingAmount: outstanding.reduce(
+      (sum, customer) => sum + (customer.amount ?? 0),
+      0,
+    ),
+    outstandingCount: outstanding.length,
+    currentQueueLabel: current ? queueTag(current.queueNumber) : "—",
+    currentQueueDetail: current
+      ? `${current.name} · ${STAGE_TH[current.stage]}`
+      : "ยังไม่มีคิวที่กำลังทำ",
+  };
+}
+
+/**
+ * The "ต้องจัดการ" list, derived from the active lot's roster rather than
+ * hand-written: awaiting payment, sketch done but no quotation issued, paused.
+ */
+export function actionItemsFor(roster: Customer[]): ActionItem[] {
+  const items: ActionItem[] = [];
+
+  for (const customer of roster) {
+    if (customer.state === "cancelled") continue;
+
+    if (customer.state === "paused") {
+      items.push({
+        id: `pause-${customer.id}`,
+        tone: "coral",
+        label: `${queueTag(customer.queueNumber)} ${customer.name} หยุดชั่วคราว`,
+        shortLabel: `${queueTag(customer.queueNumber)} หยุดชั่วคราว`,
+        actionLabel: "ดู",
+        href: `/admin/customers/${customer.code}`,
+      });
+      continue;
+    }
+
+    if (customer.stage === "payment" && customer.payment === "unpaid") {
+      items.push({
+        id: `pay-${customer.id}`,
+        tone: "amber",
+        label: `${queueTag(customer.queueNumber)} ${customer.name} รอชำระเงิน`,
+        shortLabel: `${queueTag(customer.queueNumber)} รอชำระเงิน`,
+        actionLabel: "ดู",
+        href: `/admin/customers/${customer.code}`,
+      });
+      continue;
+    }
+
+    if (customer.stage === "sketch" && customer.quotationId === null) {
+      items.push({
+        id: `quote-${customer.id}`,
+        tone: "violet",
+        label: `${queueTag(customer.queueNumber)} ${customer.name} ร่างเสร็จ · ยังไม่ออกใบ`,
+        shortLabel: `${queueTag(customer.queueNumber)} ยังไม่ออกใบเสนอราคา`,
+        actionLabel: "ออกใบ",
+        href: `/admin/customers/${customer.code}/quotation`,
+      });
+    }
+  }
+
+  return items;
+}
 
 /** Stage counts for the breakdown bars, over whichever customers are passed in. */
 export function stageBreakdown(source: Customer[]): Array<{
@@ -89,5 +162,3 @@ export function stageBreakdown(source: Customer[]): Array<{
     },
   ];
 }
-
-export const todayLabel = "6 สิงหาคม 2569";

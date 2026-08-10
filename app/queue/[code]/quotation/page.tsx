@@ -7,31 +7,35 @@ import { PrintActions } from "@/components/quotation/PrintActions";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
 import { LinkButton } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getCustomerByCode } from "@/data/customers";
-import { getLot } from "@/data/lots";
-import { getQuotation } from "@/data/quotations";
+import { getQueueDetail, type QueueDetail } from "@/lib/supabase/public";
+import { supabasePublic } from "@/lib/supabase/server";
+
+async function load(code: string): Promise<QueueDetail | null> {
+  const db = await supabasePublic();
+  return getQueueDetail(db, code);
+}
 
 export async function generateMetadata({
   params,
 }: PageProps<"/queue/[code]/quotation">): Promise<Metadata> {
   const { code } = await params;
-  const customer = getCustomerByCode(code);
-  return { title: customer ? `ใบเสนอราคา · ${customer.name}` : "ใบเสนอราคา" };
+  const detail = await load(code);
+  return {
+    title: detail ? `ใบเสนอราคา · ${detail.customer.name}` : "ใบเสนอราคา",
+  };
 }
 
 export default async function CustomerQuotationPage({
   params,
 }: PageProps<"/queue/[code]/quotation">) {
   const { code } = await params;
-  const customer = getCustomerByCode(code);
-  if (!customer) notFound();
+  const detail = await load(code);
+  if (!detail) notFound();
 
-  const lot = getLot(customer.lotId);
-  if (!lot) notFound();
-
-  const quotation = getQuotation(customer.quotationId);
-  // Drafts are internal: the customer sees the empty state until it's issued.
-  const issued = quotation?.status === "issued" ? quotation : null;
+  const { customer, lot } = detail;
+  // Drafts are internal: `get_queue_detail()` filters on status = 'issued', so
+  // anything that reaches here is already safe to show.
+  const issued = detail.quotation;
 
   return (
     <>

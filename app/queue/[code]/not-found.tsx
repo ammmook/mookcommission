@@ -27,10 +27,11 @@ export default function QueueNotFound() {
               }
             />
             <p className="rounded-2xl border-[1.5px] border-line bg-cream px-4 py-3 text-[11.5px] leading-relaxed text-subtle">
-              รหัสคิวคือตัวอักษร 2 ตัว + ตัวเลข 3 หลัก เช่น{" "}
+              รหัสคิวคือรหัสที่ศิลปินให้ไว้ เช่น{" "}
               <code className="font-mono text-[11px] font-semibold text-ink">
                 MK001
-              </code>
+              </code>{" "}
+              · ค้นด้วยชื่อของคุณก็ได้
             </p>
           </div>
         </PageContainer>

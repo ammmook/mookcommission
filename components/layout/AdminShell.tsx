@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
+import { useAdminData } from "@/lib/store/admin-store";
+import { signOutAdmin } from "@/lib/supabase/auth";
 import { ADMIN_NAV, isNavItemActive } from "./adminNav";
 
 interface AdminShellProps {
@@ -135,17 +137,23 @@ function SidebarLinks({ pathname }: { pathname: string }) {
   );
 }
 
+/** Name comes from the signed-in admin's `admins.display_name`. */
 function ArtistChip() {
+  const { adminName } = useAdminData();
+  const initial = adminName.trim().charAt(0).toUpperCase() || "A";
+
   return (
     <div className="flex items-center gap-2.5 rounded-xl bg-white/6 p-2 lg:px-3">
       <span
         aria-hidden="true"
         className="grid size-7 shrink-0 place-items-center rounded-full bg-amber font-display text-xs font-bold text-ink"
       >
-        M
+        {initial}
       </span>
       <span className="hidden min-w-0 flex-col lg:flex">
-        <span className="truncate text-xs font-medium text-white">Mook</span>
+        <span className="truncate text-xs font-medium text-white">
+          {adminName}
+        </span>
         <span className="font-mono text-[10px] text-nav-mono">ARTIST</span>
       </span>
     </div>
@@ -187,6 +195,8 @@ function MobileDrawer({
   pathname: string;
   onClose: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -244,13 +254,18 @@ function MobileDrawer({
 
         <div className="flex-1" />
         <ArtistChip />
-        <Link
-          href="/admin/login"
-          className="mt-2 flex min-h-12 items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-nav-text"
+        <button
+          type="button"
+          onClick={async () => {
+            await signOutAdmin();
+            router.replace("/admin/login");
+            router.refresh();
+          }}
+          className="mt-2 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium text-nav-text"
         >
           <LogOut size={18} aria-hidden="true" />
           ออกจากระบบ
-        </Link>
+        </button>
       </nav>
     </div>
   );

@@ -1,9 +1,13 @@
+import { Suspense } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { QueueSearchForm } from "@/components/queue/QueueSearchForm";
+import {
+  ActiveLotPill,
+  ActiveLotPillSkeleton,
+} from "@/components/queue/ActiveLotPill";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
-import { activeLot, lotFilled, lotLabel } from "@/data/lots";
 
 const STEPS = [
   {
@@ -38,14 +42,10 @@ export default function LandingPage() {
         <PageContainer className="py-8 sm:py-12 lg:py-14">
           <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-13">
             <section>
-              <p className="inline-flex items-center gap-2 rounded-full bg-coral-tint px-3 py-1.5 text-[11px] font-semibold text-coral-deep sm:text-[11.5px]">
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 rounded-full bg-teal"
-                />
-                {lotLabel(activeLot)} กำลังเปิดรับ · {lotFilled(activeLot.id)}/
-                {activeLot.capacity} คิว
-              </p>
+              {/* Streams in so the hero and search box render immediately. */}
+              <Suspense fallback={<ActiveLotPillSkeleton />}>
+                <ActiveLotPill />
+              </Suspense>
 
               <h1 className="mt-3.5 text-[clamp(1.85rem,7vw,2.875rem)] leading-[1.2] font-bold text-ink">
                 เช็กคิว Commission

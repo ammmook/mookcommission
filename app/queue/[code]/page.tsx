@@ -9,38 +9,40 @@ import { QueueStepper } from "@/components/queue/QueueStepper";
 import { SketchGallery } from "@/components/queue/SketchGallery";
 import { LinkButton } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import {
-  currentQueueNumber,
-  customers,
-  getCustomerByCode,
-} from "@/data/customers";
-import { getLot } from "@/data/lots";
-import { getQuotation } from "@/data/quotations";
 import { queueTag } from "@/lib/format";
+import { getQueueDetail, type QueueDetail } from "@/lib/supabase/public";
+import { supabasePublic } from "@/lib/supabase/server";
 
-export function generateStaticParams() {
-  return customers.map((customer) => ({ code: customer.code }));
+/**
+ * The customer's queue page. Everything comes from `get_queue_detail()`, the
+ * `security definer` function that is the only public window onto this data —
+ * and which returns nothing once the lot is closed, which is what the
+ * "ไม่พบคิว" screen explains.
+ */
+async function load(code: string): Promise<QueueDetail | null> {
+  const db = await supabasePublic();
+  return getQueueDetail(db, code);
 }
 
 export async function generateMetadata({
   params,
 }: PageProps<"/queue/[code]">): Promise<Metadata> {
   const { code } = await params;
-  const customer = getCustomerByCode(code);
-  if (!customer) return { title: "ไม่พบคิว" };
-  return { title: `คิว ${queueTag(customer.queueNumber)} · ${customer.name}` };
+  const detail = await load(code);
+  if (!detail) return { title: "ไม่พบคิว" };
+  return {
+    title: `คิว ${queueTag(detail.customer.queueNumber)} · ${detail.customer.name}`,
+  };
 }
 
 export default async function QueuePage({ params }: PageProps<"/queue/[code]">) {
   const { code } = await params;
-  const customer = getCustomerByCode(code);
-  if (!customer) notFound();
+  const detail = await load(code);
+  if (!detail) notFound();
 
-  const lot = getLot(customer.lotId);
-  if (!lot) notFound();
-
-  const quotation = getQuotation(customer.quotationId);
-  const showQuotation = quotation?.status === "issued";
+  const { customer, lot, quotation, queuesAhead, doneCount } = detail;
+  // The RPC only ever returns issued quotations, so its presence is the check.
+  const showQuotation = quotation !== null;
   const isCancelled = customer.state === "cancelled";
 
   return (
@@ -54,7 +56,8 @@ export default async function QueuePage({ params }: PageProps<"/queue/[code]">) 
               <QueueHero
                 customer={customer}
                 lot={lot}
-                currentQueueNumber={currentQueueNumber}
+                queuesAhead={queuesAhead}
+                doneCount={doneCount}
               />
 
               {customer.state === "paused" && customer.pausedNote ? (
@@ -72,10 +75,7 @@ export default async function QueuePage({ params }: PageProps<"/queue/[code]">) 
                 <>
                   <Card>
                     <CardHeader title="ขั้นตอนงาน" hint="/ Process" />
-                    <QueueStepper
-                      current={customer.stage}
-                      history={customer.stageHistory}
-                    />
+                    <QueueStepper current={customer.stage} />
                   </Card>
 
                   <Card>

@@ -1,21 +1,22 @@
 import Link from "next/link";
-import { getLot, lotLabel } from "@/data/lots";
+import { lotLabel } from "@/data/lots";
 import { PaymentPill, StagePill } from "@/components/ui/StatusPill";
 import { accentBorderClass } from "@/lib/stages";
 import { cn } from "@/lib/cn";
 import { queueTag } from "@/lib/format";
-import type { Customer } from "@/lib/types";
+import type { Customer, Lot } from "@/lib/types";
 
 /** Phone/tablet representation of a customer row. */
 export function CustomerCard({
   customer,
+  lot,
   isCurrent,
 }: {
   customer: Customer;
+  lot: Lot | undefined;
   isCurrent: boolean;
 }) {
   const cancelled = customer.state === "cancelled";
-  const lot = getLot(customer.lotId);
 
   return (
     <Link

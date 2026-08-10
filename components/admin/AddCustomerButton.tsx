@@ -7,37 +7,41 @@ import { Field, FormGrid, Input, Select, Textarea } from "@/components/ui/Field"
 import { Modal } from "@/components/ui/Modal";
 import { lotLabel } from "@/data/lots";
 import { useAdminData } from "@/lib/store/admin-store";
+import { CODE_MAX_LENGTH } from "@/lib/supabase/queues";
 
 const blank = {
   name: "",
   code: "",
-  type: "Half Body",
+  type: "",
   characters: 1,
   note: "",
 };
 
 export function AddCustomerButton({ compact }: { compact?: boolean }) {
-  const { lots, activeLot, spaceIn, addCustomer } = useAdminData();
+  const { lots, activeLot, spaceIn, addCustomer, busy, commissionTypes } =
+    useAdminData();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [lotId, setLotId] = useState(activeLot?.id ?? lots[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
 
   const start = () => {
-    setForm(blank);
+    setForm({ ...blank, type: commissionTypes[0] ?? "" });
     setLotId(activeLot?.id ?? lots[0]?.id ?? "");
     setError(null);
     setOpen(true);
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name.trim() || !form.code.trim()) {
       setError("กรุณากรอกชื่อและรหัสค้นหา");
       return;
     }
-    const ok = addCustomer({ ...form, lotId });
-    if (!ok) {
-      setError("เพิ่มไม่สำเร็จ — ล็อตเต็มแล้ว หรือรหัสค้นหาซ้ำกับลูกค้าคนอื่น");
+    // The queue number is issued by the database trigger, so nothing is
+    // computed here — the store just reports back whatever it refused.
+    const message = await addCustomer({ ...form, lotId });
+    if (message) {
+      setError(message);
       return;
     }
     setOpen(false);
@@ -56,8 +60,8 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
         title="เพิ่มลูกค้าใหม่"
         footer={
           <>
-            <Button size="lg" fullWidth onClick={submit}>
-              เพิ่มลูกค้า
+            <Button size="lg" fullWidth onClick={submit} disabled={busy}>
+              {busy ? "กำลังเพิ่ม…" : "เพิ่มลูกค้า"}
             </Button>
             <Button
               variant="outline"
@@ -89,7 +93,8 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
             <Input
               id="new-code"
               value={form.code}
-              placeholder="MK001"
+              placeholder="ตั้งรหัสเองได้ เช่น MK001"
+              maxLength={CODE_MAX_LENGTH}
               mono
               onChange={(event) =>
                 setForm({ ...form, code: event.target.value })
@@ -121,9 +126,11 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
                 setForm({ ...form, type: event.target.value })
               }
             >
-              <option>Bust</option>
-              <option>Half Body</option>
-              <option>Full Body</option>
+              {commissionTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="จำนวนตัวละคร" htmlFor="new-characters">

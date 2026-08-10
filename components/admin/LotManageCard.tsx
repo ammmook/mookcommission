@@ -34,8 +34,9 @@ export function LotManageCard({
   onDelete,
   onRemoveCustomer,
 }: LotManageCardProps) {
-  const { customersInLot, filledFor, setLotStatus } = useAdminData();
+  const { customersInLot, filledFor, setLotStatus, busy } = useAdminData();
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const panelId = useId();
 
   const roster = customersInLot(lot.id);
@@ -91,7 +92,12 @@ export function LotManageCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLotStatus(lot.id, active ? "closed" : "active")}
+            disabled={busy}
+            onClick={async () => {
+              // Reopening closes whichever lot currently holds the open slot;
+              // the database allows exactly one.
+              setError(await setLotStatus(lot.id, active ? "closed" : "active"));
+            }}
           >
             {active ? (
               <>
@@ -129,6 +135,15 @@ export function LotManageCard({
             />
           </button>
         </div>
+
+        {error ? (
+          <p
+            role="alert"
+            className="mt-2.5 text-[11.5px] font-medium text-coral-text"
+          >
+            {error}
+          </p>
+        ) : null}
       </div>
 
       {open ? (
@@ -167,7 +182,7 @@ function LotCustomerRow({
   currentLot: Lot;
   onRemove: () => void;
 }) {
-  const { lots, spaceIn, moveCustomer } = useAdminData();
+  const { lots, spaceIn, moveCustomer, busy } = useAdminData();
   const selectId = useId();
   const [error, setError] = useState<string | null>(null);
 
@@ -204,11 +219,11 @@ function LotCustomerRow({
           <select
             id={selectId}
             value=""
-            onChange={(event) => {
+            disabled={busy}
+            onChange={async (event) => {
               const toLotId = event.target.value;
               if (!toLotId) return;
-              const ok = moveCustomer(customer.id, toLotId);
-              setError(ok ? null : "ล็อตปลายทางเต็มแล้ว");
+              setError(await moveCustomer(customer.id, toLotId));
             }}
             className="w-full min-w-0 cursor-pointer rounded-xl border-2 border-line-strong bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none focus:border-violet"
           >

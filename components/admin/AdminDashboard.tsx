@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ActionItemList } from "./ActionItemList";
+import { AdminLoadError, AdminScreenSkeleton } from "./AdminStatus";
 import { AdminPageHeading } from "./AdminPageHeading";
 import { CreateLotButton } from "./CreateLotButton";
 import { LotBreakdown } from "./LotBreakdown";
@@ -9,21 +10,35 @@ import { LotCard } from "./LotCard";
 import { StatStrip, type Stat } from "./StatStrip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LinkButton } from "@/components/ui/Button";
-import { actionItems, dashboardStats, todayLabel } from "@/data/dashboard";
+import { actionItemsFor, dashboardStats } from "@/data/dashboard";
 import { lotLabel } from "@/data/lots";
-import { baht } from "@/lib/format";
+import { baht, thaiDate } from "@/lib/format";
 import { useAdminData } from "@/lib/store/admin-store";
 
 export function AdminDashboard() {
-  const { lots, activeLot, filledFor, customersInLot } = useAdminData();
+  const {
+    lots,
+    customers,
+    activeLot,
+    filledFor,
+    customersInLot,
+    currentQueueNumber,
+    loading,
+    loadError,
+  } = useAdminData();
 
-  // Only surface action items whose customer still exists.
+  if (loading) return <AdminScreenSkeleton />;
+  if (loadError) return <AdminLoadError message={loadError} />;
+
+  // Safe to read the clock here: the server render always takes the `loading`
+  // branch above, so this only ever runs on the client after data arrives.
+  const todayLabel = thaiDate();
+
   const roster = activeLot ? customersInLot(activeLot.id) : [];
-  const liveActions = actionItems.filter((item) =>
-    roster.some((customer) => item.href.includes(customer.code)),
-  );
+  const liveActions = actionItemsFor(roster);
+  const stats = dashboardStats(customers, roster, currentQueueNumber);
 
-  const stats: Stat[] = [
+  const statList: Stat[] = [
     {
       id: "lot",
       eyebrow: "ACTIVE LOT",
@@ -35,45 +50,45 @@ export function AdminDashboard() {
     {
       id: "current",
       eyebrow: "คิวปัจจุบัน",
-      value: dashboardStats.currentQueueLabel,
-      detail: dashboardStats.currentQueueDetail,
+      value: stats.currentQueueLabel,
+      detail: stats.currentQueueDetail,
       valueClass: "text-amber",
     },
     {
       id: "waiting",
       eyebrow: "รอคิว",
-      value: String(dashboardStats.waiting),
+      value: String(stats.waiting),
       detail: "คน",
     },
     {
       id: "done",
       eyebrow: "เสร็จแล้ว",
-      value: String(dashboardStats.completedThisMonth),
-      detail: "เดือนนี้",
+      value: String(stats.completedThisMonth),
+      detail: "ทั้งหมด",
       valueClass: "text-teal",
     },
     {
       id: "outstanding",
       eyebrow: "รอชำระเงิน",
-      value: baht(dashboardStats.outstandingAmount),
-      detail: `${dashboardStats.outstandingCount} ใบเสนอราคา`,
+      value: baht(stats.outstandingAmount),
+      detail: `${stats.outstandingCount} ใบเสนอราคา`,
       valueClass: "text-coral-light",
     },
   ];
+
+  const subtitleSuffix = activeLot
+    ? `${lotLabel(activeLot)} กำลังเปิด`
+    : "ยังไม่มีล็อตที่เปิดรับคิว";
 
   return (
     <>
       <AdminPageHeading
         title="ภาพรวมวันนี้"
-        subtitle={
-          activeLot
-            ? `${todayLabel} · ${lotLabel(activeLot)} กำลังเปิด`
-            : `${todayLabel} · ยังไม่มีล็อตที่เปิดรับคิว`
-        }
+        subtitle={`${todayLabel} · ${subtitleSuffix}`}
         action={<CreateLotButton />}
       />
 
-      <StatStrip stats={stats} />
+      <StatStrip stats={statList} />
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
         <section>

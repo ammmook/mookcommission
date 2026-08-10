@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { useState } from "react";
+import { AdminActionError, AdminLoadError, AdminScreenSkeleton } from "./AdminStatus";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { QuotationDocument } from "@/components/quotation/QuotationDocument";
 import { Badge } from "@/components/ui/Badge";
@@ -10,44 +11,49 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input, Textarea } from "@/components/ui/Field";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { emptyLine, getQuotation, subtotal } from "@/data/quotations";
+import { DEFAULT_TERMS, emptyLine, subtotal } from "@/data/quotations";
 import { baht, queueTag } from "@/lib/format";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { reportError } from "@/lib/supabase/errors";
+import { issueQuotation, saveQuotationDraft } from "@/lib/supabase/quotations";
 import { useAdminData } from "@/lib/store/admin-store";
 import type { Quotation, QuotationLine } from "@/lib/types";
 
-const BLANK_TERMS =
-  "มัดจำ 50% ก่อนเริ่มลงสี · แก้ไขได้ 2 ครั้ง · ไฟล์ส่งภายใน 14 วันหลังชำระครบ";
-
-/** Customers without a quotation start from a blank draft. */
-function blankQuotation(customerId: string): Quotation {
-  return {
-    id: `qt-new-${customerId}`,
-    number: "QT-2569-NEW",
-    customerId,
-    status: "draft",
-    lines: [{ id: "l1", item: "", qty: 1, price: 0 }],
-    discount: 0,
-    terms: BLANK_TERMS,
-  };
-}
+/** Placeholder document number until the database assigns the real one. */
+const PENDING_DOC_NUMBER = "QT-…";
 
 /**
  * Line-item editor with a live preview. Desktop shows both side by side; below
  * `lg` they become tabs so neither pane gets squeezed.
+ *
+ * `quotation_items.amount` is a generated column, so only `qty` and
+ * `unit_price` are ever sent — the totals shown here are a preview of what the
+ * database will compute, not the source of it.
  */
 export function QuotationBuilder({ code }: { code: string }) {
-  const { getCustomer, lots } = useAdminData();
+  const { getCustomer, lots, refresh, loading, loadError } = useAdminData();
   const customer = getCustomer(code);
-  const quotation =
-    getQuotation(customer?.quotationId ?? null) ??
-    blankQuotation(customer?.id ?? code);
+  const existing = customer?.quotation ?? null;
 
-  const [lines, setLines] = useState<QuotationLine[]>(quotation.lines);
-  const [terms, setTerms] = useState(quotation.terms);
+  const [lines, setLines] = useState<QuotationLine[]>(
+    existing?.lines.length ? existing.lines : [emptyLine("l1")],
+  );
+  const [terms, setTerms] = useState(existing?.terms || DEFAULT_TERMS);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
-  const [issued, setIssued] = useState(quotation.status === "issued");
+  const [issued, setIssued] = useState(existing?.status === "issued");
+  const [docNumber, setDocNumber] = useState(
+    existing?.number ?? PENDING_DOC_NUMBER,
+  );
+  const [issuedLabel, setIssuedLabel] = useState(existing?.issuedLabel);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
 
   const lot = lots.find((entry) => entry.id === customer?.lotId);
+
+  if (loading) return <AdminScreenSkeleton />;
+  if (loadError) return <AdminLoadError message={loadError} />;
+
   if (!customer || !lot) {
     return (
       <EmptyState
@@ -75,14 +81,59 @@ export function QuotationBuilder({ code }: { code: string }) {
   const removeLine = (id: string) =>
     setLines((current) => current.filter((line) => line.id !== id));
 
-  const total = subtotal(lines) - quotation.discount;
+  const discount = existing?.discount ?? 0;
+  const total = subtotal(lines) - discount;
   const locked = issued;
 
-  const draftQuotation: Quotation = {
-    ...quotation,
-    lines,
-    terms,
+  /** Shared by "บันทึกร่าง" and "ออกใบ": both persist the same payload. */
+  const persist = async (mode: "draft" | "issue") => {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    setSavedNote(null);
+
+    try {
+      const input = {
+        entryId: customer.id,
+        lines,
+        terms,
+        discount,
+      };
+      const saved =
+        mode === "issue"
+          ? await issueQuotation(supabaseBrowser(), input)
+          : await saveQuotationDraft(supabaseBrowser(), input);
+
+      setDocNumber(saved.number);
+      setLines(saved.lines.length ? saved.lines : [emptyLine("l1")]);
+      setTerms(saved.terms);
+      setIssuedLabel(saved.issuedLabel);
+      setIssued(saved.status === "issued");
+      setSavedNote(
+        mode === "issue" ? "ออกใบเสนอราคาแล้ว" : "บันทึกฉบับร่างแล้ว",
+      );
+      await refresh();
+    } catch (saveError) {
+      setError(
+        reportError(
+          saveError,
+          mode === "issue" ? "ออกใบไม่สำเร็จ" : "บันทึกร่างไม่สำเร็จ",
+        ),
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const previewQuotation: Quotation = {
+    id: existing?.id ?? "preview",
+    number: docNumber,
+    customerId: customer.id,
     status: issued ? "issued" : "draft",
+    issuedLabel,
+    lines,
+    discount,
+    terms,
   };
 
   return (
@@ -108,14 +159,31 @@ export function QuotationBuilder({ code }: { code: string }) {
         </Badge>
 
         <div className="ml-auto hidden gap-2.5 md:flex">
-          <Button variant="outline" disabled={locked}>
-            บันทึกร่าง
+          <Button
+            variant="outline"
+            disabled={locked || pending}
+            onClick={() => void persist("draft")}
+          >
+            {pending ? "กำลังบันทึก…" : "บันทึกร่าง"}
           </Button>
-          <Button onClick={() => setIssued(true)} disabled={locked}>
+          <Button
+            disabled={locked || pending}
+            onClick={() => void persist("issue")}
+          >
             ออกใบ &amp; ส่งให้ลูกค้า
           </Button>
         </div>
       </header>
+
+      <AdminActionError message={error} />
+      {savedNote ? (
+        <p
+          role="status"
+          className="mt-3 rounded-2xl border-[1.5px] border-teal-border bg-teal-bg px-4 py-3 text-[11.5px] font-medium text-teal-text"
+        >
+          {savedNote}
+        </p>
+      ) : null}
 
       {/* Tab switch replaces the split view below lg. */}
       <SegmentedControl
@@ -265,7 +333,7 @@ export function QuotationBuilder({ code }: { code: string }) {
           </h2>
           <div className="rounded-3xl bg-canvas p-3.5 sm:p-5">
             <QuotationDocument
-              quotation={draftQuotation}
+              quotation={previewQuotation}
               customer={customer}
               lot={lot}
               variant="compact"
@@ -275,14 +343,20 @@ export function QuotationBuilder({ code }: { code: string }) {
       </div>
 
       <StickyActionBar>
-        <Button variant="outline" size="lg" className="flex-1" disabled={locked}>
+        <Button
+          variant="outline"
+          size="lg"
+          className="flex-1"
+          disabled={locked || pending}
+          onClick={() => void persist("draft")}
+        >
           บันทึกร่าง
         </Button>
         <Button
           size="lg"
           className="flex-[1.4]"
-          onClick={() => setIssued(true)}
-          disabled={locked}
+          disabled={locked || pending}
+          onClick={() => void persist("issue")}
         >
           ออกใบ &amp; ส่ง
         </Button>

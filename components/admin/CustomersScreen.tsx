@@ -1,13 +1,17 @@
 "use client";
 
 import { AddCustomerButton } from "./AddCustomerButton";
+import { AdminLoadError, AdminScreenSkeleton } from "./AdminStatus";
 import { AdminPageHeading } from "./AdminPageHeading";
 import { CustomerDirectory } from "./CustomerDirectory";
-import { currentQueueNumber } from "@/data/customers";
 import { useAdminData } from "@/lib/store/admin-store";
 
 export function CustomersScreen() {
-  const { customers, lots } = useAdminData();
+  const { customers, lots, currentQueueNumber, loading, loadError } =
+    useAdminData();
+
+  if (loading) return <AdminScreenSkeleton />;
+  if (loadError) return <AdminLoadError message={loadError} />;
 
   return (
     <>

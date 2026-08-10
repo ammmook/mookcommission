@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, Check, Pause, Play, X } from "lucide-react";
 import { useState } from "react";
+import { AdminActionError, AdminLoadError, AdminScreenSkeleton } from "./AdminStatus";
 import { AdminPageHeading } from "./AdminPageHeading";
 import { SketchManager } from "./SketchManager";
 import { StageSelector } from "./StageSelector";
@@ -15,11 +16,12 @@ import { Field, FormGrid, Input, Select, Textarea } from "@/components/ui/Field"
 import { Modal } from "@/components/ui/Modal";
 import { Toggle } from "@/components/ui/Toggle";
 import { lotLabel } from "@/data/lots";
-import { getQuotation } from "@/data/quotations";
 import { baht, queueTag } from "@/lib/format";
 import { STAGE_META, STATE_META } from "@/lib/stages";
 import { useAdminData } from "@/lib/store/admin-store";
+import { CODE_MAX_LENGTH } from "@/lib/supabase/queues";
 import type {
+  Customer,
   HistoryEntry,
   PaymentStatus,
   QueueState,
@@ -33,34 +35,91 @@ const historyDotClasses: Record<HistoryEntry["tone"], string> = {
   coral: "bg-coral",
 };
 
+/** The commission fields, held locally until "บันทึก" writes them. */
+interface DetailsForm {
+  type: string;
+  characters: number;
+  dimensions: string;
+  code: string;
+  note: string;
+}
+
+function formFor(customer: Customer): DetailsForm {
+  return {
+    type: customer.commission.type,
+    characters: customer.commission.characters,
+    dimensions: customer.commission.dimensions,
+    code: customer.code,
+    note: customer.commission.note,
+  };
+}
+
 /**
  * Editor for one customer, keyed by code so it always reflects the live store —
  * a customer's lot and queue number can change from the Lot screen.
+ *
+ * Stage, state and payment write immediately (each is a single decision the
+ * artist makes and expects to stick); the commission text fields are batched
+ * behind the save button, which is how the screen already behaved.
  */
 export function CustomerEditor({ code }: { code: string }) {
-  const { getCustomer, lots, spaceIn, moveCustomer, updateCustomer } =
-    useAdminData();
+  const {
+    getCustomer,
+    lots,
+    spaceIn,
+    moveCustomer,
+    updateCustomer,
+    busy,
+    loading,
+    loadError,
+    commissionTypes,
+  } = useAdminData();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [saved, setSaved] = useState(false);
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const customer = getCustomer(code);
   const lot = lots.find((entry) => entry.id === customer?.lotId);
 
+  // Null until the artist edits something; until then the fields read straight
+  // off the loaded customer, so a refetch is picked up without clobbering
+  // in-progress typing.
+  const [form, setForm] = useState<DetailsForm | null>(null);
+
+  if (loading) return <AdminScreenSkeleton />;
+  if (loadError) return <AdminLoadError message={loadError} />;
   if (!customer || !lot) return <CustomerMissing />;
 
   const { stage, state, payment } = customer;
-  const setStage = (next: Stage) => updateCustomer(customer.id, { stage: next });
-  const setState = (next: QueueState) =>
-    updateCustomer(customer.id, { state: next });
-  const setPayment = (next: PaymentStatus) =>
-    updateCustomer(customer.id, { payment: next });
+  const details = form ?? formFor(customer);
 
-  const quotation = getQuotation(customer.quotationId);
+  const setStage = async (next: Stage) =>
+    setError(await updateCustomer(customer.id, { stage: next }));
+  const setState = async (next: QueueState) =>
+    setError(await updateCustomer(customer.id, { state: next }));
+  const setPayment = async (next: PaymentStatus) =>
+    setError(await updateCustomer(customer.id, { payment: next }));
+
+  const quotation = customer.quotation;
   const paused = state === "paused";
   const cancelled = state === "cancelled";
 
-  const save = () => {
+  const save = async () => {
+    const message = await updateCustomer(customer.id, {
+      code: details.code,
+      commission: {
+        type: details.type,
+        characters: details.characters,
+        dimensions: details.dimensions,
+        note: details.note,
+      },
+    });
+    if (message) {
+      setError(message);
+      return;
+    }
+    setError(null);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   };
@@ -84,7 +143,8 @@ export function CustomerEditor({ code }: { code: string }) {
     <>
       <Button
         variant="warning"
-        onClick={() => setState(paused ? "active" : "paused")}
+        disabled={busy}
+        onClick={() => void setState(paused ? "active" : "paused")}
         className="sm:w-auto"
       >
         {paused ? (
@@ -101,8 +161,9 @@ export function CustomerEditor({ code }: { code: string }) {
       </Button>
       <Button
         variant="danger"
+        disabled={busy}
         onClick={() =>
-          cancelled ? setState("active") : setConfirmCancel(true)
+          cancelled ? void setState("active") : setConfirmCancel(true)
         }
         className="sm:w-auto"
       >
@@ -142,7 +203,7 @@ export function CustomerEditor({ code }: { code: string }) {
         action={
           <div className="hidden gap-2.5 md:flex">
             {queueControls}
-            <Button variant="dark" onClick={save}>
+            <Button variant="dark" onClick={save} disabled={busy}>
               {saved ? (
                 <>
                   <Check size={15} aria-hidden="true" />
@@ -156,25 +217,43 @@ export function CustomerEditor({ code }: { code: string }) {
         }
       />
 
+      <AdminActionError message={error} />
+
       <div className="grid items-start gap-4 lg:grid-cols-[1.15fr_0.85fr] lg:gap-5">
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader title="ขั้นตอนงาน" hint="— กดเพื่อเปลี่ยนสถานะ" />
-            <StageSelector value={stage} onChange={setStage} />
+            <StageSelector
+              value={stage}
+              onChange={(next) => void setStage(next)}
+            />
           </Card>
 
           <Card>
-            <SketchManager initial={customer.sketches} />
+            <SketchManager customer={customer} />
           </Card>
 
           <Card>
             <CardHeader title="รายละเอียดงาน / Commission" />
             <FormGrid>
               <Field label="ประเภทงาน" htmlFor="edit-type">
-                <Select id="edit-type" defaultValue={customer.commission.type}>
-                  <option>Bust</option>
-                  <option>Half Body</option>
-                  <option>Full Body</option>
+                <Select
+                  id="edit-type"
+                  value={details.type}
+                  onChange={(event) =>
+                    setForm({ ...details, type: event.target.value })
+                  }
+                >
+                  {commissionTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                  {/* A type that has since been renamed or deactivated still
+                      has to show, or saving would silently change it. */}
+                  {commissionTypes.includes(details.type) ? null : (
+                    <option value={details.type}>{details.type}</option>
+                  )}
                 </Select>
               </Field>
               <Field label="จำนวนตัวละคร" htmlFor="edit-characters">
@@ -182,25 +261,45 @@ export function CustomerEditor({ code }: { code: string }) {
                   id="edit-characters"
                   type="number"
                   min={1}
-                  defaultValue={customer.commission.characters}
                   mono
+                  value={details.characters}
+                  onChange={(event) =>
+                    setForm({
+                      ...details,
+                      characters: Math.max(1, Number(event.target.value) || 1),
+                    })
+                  }
                 />
               </Field>
               <Field label="ขนาดไฟล์" htmlFor="edit-dimensions">
                 <Input
                   id="edit-dimensions"
-                  defaultValue={customer.commission.dimensions}
                   mono
+                  value={details.dimensions}
+                  onChange={(event) =>
+                    setForm({ ...details, dimensions: event.target.value })
+                  }
                 />
               </Field>
               <Field label="รหัสค้นหา" htmlFor="edit-code">
-                <Input id="edit-code" defaultValue={customer.code} mono />
+                <Input
+                  id="edit-code"
+                  mono
+                  value={details.code}
+                  maxLength={CODE_MAX_LENGTH}
+                  onChange={(event) =>
+                    setForm({ ...details, code: event.target.value })
+                  }
+                />
               </Field>
               <Field label="หมายเหตุ" htmlFor="edit-note" full>
                 <Textarea
                   id="edit-note"
                   rows={2}
-                  defaultValue={customer.commission.note}
+                  value={details.note}
+                  onChange={(event) =>
+                    setForm({ ...details, note: event.target.value })
+                  }
                 />
               </Field>
             </FormGrid>
@@ -220,9 +319,11 @@ export function CustomerEditor({ code }: { code: string }) {
               <Select
                 id="customer-lot"
                 value={lot.id}
-                onChange={(event) => {
-                  const ok = moveCustomer(customer.id, event.target.value);
-                  setMoveError(ok ? null : "ล็อตปลายทางเต็มแล้ว");
+                disabled={busy}
+                onChange={async (event) => {
+                  setMoveError(
+                    await moveCustomer(customer.id, event.target.value),
+                  );
                 }}
               >
                 {lots.map((option) => {
@@ -282,9 +383,10 @@ export function CustomerEditor({ code }: { code: string }) {
                     : `${baht(customer.amount)}${payment === "paid" && customer.paidDateLabel ? ` · ${customer.paidDateLabel}` : ""}`}
                 </span>
               </span>
+              {/* `paid_at` and the activity entry are written by the trigger. */}
               <Toggle
                 checked={payment === "paid"}
-                onChange={(next) => setPayment(next ? "paid" : "unpaid")}
+                onChange={(next) => void setPayment(next ? "paid" : "unpaid")}
                 label="สลับสถานะการชำระเงิน"
               />
             </div>
@@ -351,7 +453,13 @@ export function CustomerEditor({ code }: { code: string }) {
       </div>
 
       <StickyActionBar>
-        <Button variant="dark" size="lg" fullWidth onClick={save}>
+        <Button
+          variant="dark"
+          size="lg"
+          fullWidth
+          onClick={save}
+          disabled={busy}
+        >
           {saved ? "บันทึกแล้ว ✓" : "บันทึกการเปลี่ยนแปลง"}
         </Button>
       </StickyActionBar>
@@ -374,8 +482,9 @@ export function CustomerEditor({ code }: { code: string }) {
               variant="danger-solid"
               size="lg"
               fullWidth
-              onClick={() => {
-                setState("cancelled");
+              disabled={busy}
+              onClick={async () => {
+                await setState("cancelled");
                 setConfirmCancel(false);
               }}
             >

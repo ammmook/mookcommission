@@ -32,11 +32,20 @@ export function Modal({
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Callers pass `onClose` as an inline arrow, so its identity changes on every
+  // render. Reading it through a ref keeps it out of the effect's deps — with
+  // it in there, typing in a field inside the modal re-ran the effect on every
+  // keystroke and `panelRef.focus()` stole focus back after a single character.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKeyDown);
 
@@ -44,13 +53,14 @@ export function Modal({
     const { overflow } = document.body.style;
     document.body.style.overflow = "hidden";
 
+    // Once per open, never on re-render.
     panelRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

@@ -1,22 +1,45 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
+import { signInAdmin } from "@/lib/supabase/auth";
 
 /**
- * Mock sign-in. There is no auth yet — any submission goes to the dashboard.
- * Replace `handleSubmit` with the real call when Supabase lands.
+ * Real sign-in against Supabase Auth. `signInAdmin` also confirms the account
+ * has a row in `admins` — the only thing that grants access under RLS.
  */
 export function AdminLoginForm({ className }: { className?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
+
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
+
     setPending(true);
-    router.push("/admin");
+    setError(null);
+
+    const result = await signInAdmin(email, password);
+
+    if (!result.ok) {
+      setError(result.message);
+      setPending(false);
+      return;
+    }
+
+    // `proxy.ts` puts the intended destination here when it bounced the request.
+    const next = searchParams.get("next");
+    router.replace(next?.startsWith("/admin") ? next : "/admin");
+    // The session cookie was set client-side; refresh so the server layout sees it.
+    router.refresh();
   }
 
   return (
@@ -28,8 +51,8 @@ export function AdminLoginForm({ className }: { className?: string }) {
             name="email"
             type="email"
             autoComplete="email"
-            defaultValue="artist@torqueue.art"
             required
+            disabled={pending}
           />
         </Field>
 
@@ -39,8 +62,8 @@ export function AdminLoginForm({ className }: { className?: string }) {
             name="password"
             type="password"
             autoComplete="current-password"
-            defaultValue="torqueue"
             required
+            disabled={pending}
           />
         </Field>
 
@@ -53,6 +76,15 @@ export function AdminLoginForm({ className }: { className?: string }) {
           />
           จดจำฉันไว้ในเครื่องนี้
         </label>
+
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-2xl border-[1.5px] border-coral-border bg-coral-bg px-4 py-3 text-[12.5px] leading-relaxed font-medium text-coral-text"
+          >
+            {error}
+          </p>
+        ) : null}
 
         <Button type="submit" size="lg" fullWidth disabled={pending}>
           {pending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}

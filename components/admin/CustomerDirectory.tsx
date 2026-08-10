@@ -28,10 +28,11 @@ export function CustomerDirectory({
   currentQueueNumber,
   addButton,
 }: {
-  currentQueueNumber: number;
+  /** Null when no lot is open, or the open lot has nothing in progress. */
+  currentQueueNumber: number | null;
   addButton: React.ReactNode;
 }) {
-  const { lots, customers } = useAdminData();
+  const { lots, customers, activeLot } = useAdminData();
   const [query, setQuery] = useState("");
   const [lotFilter, setLotFilter] = useState(ALL);
   const [status, setStatus] = useState(ALL);
@@ -42,11 +43,13 @@ export function CustomerDirectory({
   ];
 
   // Newest lot first, then by queue number — matches "เรียงตามเลขคิว".
+  // Lot ids are numeric strings, so they are compared as numbers; a string
+  // compare would put Lot 10 before Lot 9.
   const sorted = useMemo(
     () =>
       [...customers].sort(
         (a, b) =>
-          b.lotId.localeCompare(a.lotId) || a.queueNumber - b.queueNumber,
+          Number(b.lotId) - Number(a.lotId) || a.queueNumber - b.queueNumber,
       ),
     [customers],
   );
@@ -164,6 +167,8 @@ export function CustomerDirectory({
             <CustomerTable
               customers={visible}
               currentQueueNumber={currentQueueNumber}
+              activeLotId={activeLot?.id}
+              lots={lots}
             />
           </div>
           <ul className="flex flex-col gap-3 lg:hidden">
@@ -171,9 +176,11 @@ export function CustomerDirectory({
               <li key={customer.id}>
                 <CustomerCard
                   customer={customer}
+                  lot={lots.find((lot) => lot.id === customer.lotId)}
                   isCurrent={
+                    currentQueueNumber !== null &&
                     customer.queueNumber === currentQueueNumber &&
-                    customer.lotId === "lot-03"
+                    customer.lotId === activeLot?.id
                   }
                 />
               </li>
