@@ -66,6 +66,7 @@ export interface CustomerPatch {
   name?: string;
   code?: string;
   contact?: string;
+  email?: string;
   commission?: {
     type?: string;
     characters?: number;
@@ -121,6 +122,7 @@ export interface NewCustomerInput {
   type: string;
   characters: number;
   note: string;
+  email: string;
 }
 
 const AdminDataContext = createContext<AdminStore | null>(null);
@@ -329,6 +331,7 @@ export function AdminDataProvider({
           commissionType: input.type,
           characterCount: input.characters,
           note: input.note,
+          email: input.email,
         });
       }, "เพิ่มลูกค้าไม่สำเร็จ");
     },
@@ -382,6 +385,7 @@ export function AdminDataProvider({
           name: patch.name,
           code: patch.code,
           contact: patch.contact,
+          email: patch.email,
           commissionType: patch.commission?.type,
           characterCount: patch.commission?.characters,
           dimensions: patch.commission?.dimensions,

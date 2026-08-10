@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, JetBrains_Mono, Kanit } from "next/font/google";
+import { loadSiteSettings } from "@/lib/site-server";
+import { SiteSettingsProvider } from "@/lib/store/site-settings";
 import "./globals.css";
 
 const kanit = Kanit({
@@ -23,27 +25,30 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "ต่อคิว · TorQueue",
-    template: "%s · ต่อคิว TorQueue",
-  },
-  description:
-    "ระบบจัดการคิว Commission สำหรับศิลปิน — เช็กคิว ติดตามสถานะงาน และดูใบเสนอราคาได้ทันที",
-};
+/** Title follows `site_settings.studio_name`, so renaming the studio renames the tab. */
+export async function generateMetadata(): Promise<Metadata> {
+  const { studioName } = await loadSiteSettings();
+  return {
+    title: { default: studioName, template: `%s · ${studioName}` },
+    description:
+      "ระบบจัดการคิว Commission สำหรับศิลปิน — เช็กคิว ติดตามสถานะงาน และดูใบเสนอราคาได้ทันที",
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#FFF8F0",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const site = await loadSiteSettings();
+
   return (
     <html
       lang="th"
       className={`${kanit.variable} ${plexThai.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col overflow-x-hidden">
-        {children}
+        <SiteSettingsProvider value={site}>{children}</SiteSettingsProvider>
       </body>
     </html>
   );

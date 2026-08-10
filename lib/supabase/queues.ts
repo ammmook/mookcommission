@@ -18,7 +18,7 @@ import type { QueueEntryRow } from "./database.types";
 import type { Customer, PaymentStatus, QueueState, Stage } from "@/lib/types";
 
 const ENTRY_COLUMNS = `
-  id, lot_number, queue_number, code, customer_name, contact,
+  id, lot_number, queue_number, code, customer_name, contact, email,
   commission_type, character_count, dimensions, note,
   stage, state, paused_at, resume_expected_at, cancelled_at,
   payment_status, amount_paid, paid_at, created_at, updated_at
@@ -92,6 +92,7 @@ export interface CreateQueueInput {
   dimensions?: string;
   note?: string;
   contact?: string;
+  email?: string;
 }
 
 /**
@@ -136,6 +137,7 @@ export async function createQueueEntry(
         dimensions: input.dimensions?.trim() || null,
         note: input.note?.trim() || null,
         contact: input.contact?.trim() || null,
+        email: input.email?.trim() || null,
       })
       .select(ENTRY_COLUMNS)
       .single(),
@@ -154,6 +156,7 @@ export interface QueuePatch {
   dimensions?: string;
   note?: string;
   contact?: string;
+  email?: string;
   resumeExpectedAt?: string | null;
 }
 
@@ -186,6 +189,7 @@ export async function updateQueueEntry(
     payload.dimensions = patch.dimensions.trim() || null;
   if (patch.note !== undefined) payload.note = patch.note.trim() || null;
   if (patch.contact !== undefined) payload.contact = patch.contact.trim() || null;
+  if (patch.email !== undefined) payload.email = patch.email.trim() || null;
   if (patch.resumeExpectedAt !== undefined)
     payload.resume_expected_at = patch.resumeExpectedAt;
 

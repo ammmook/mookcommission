@@ -98,6 +98,13 @@ export function toAppError(error: unknown, fallback = GENERIC): AppError {
             "ลบไม่ได้เพราะยังมีข้อมูลอื่นอ้างอิงอยู่ — ย้ายหรือลบลูกค้าในล็อตก่อน",
           cause: error,
         };
+      case "42703":
+      case "PGRST204":
+        return {
+          message:
+            "ฐานข้อมูลยังไม่มีคอลัมน์ที่เวอร์ชันนี้ต้องใช้ — รัน schema/002 และ schema/003 ใน Supabase SQL Editor ก่อน",
+          cause: error,
+        };
       case "42501":
         return {
           message: "ไม่มีสิทธิ์ทำรายการนี้ — ลองเข้าสู่ระบบใหม่อีกครั้ง",

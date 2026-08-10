@@ -1,9 +1,15 @@
+"use client";
+
 import { lotLabel } from "@/data/lots";
 import { lineTotal, subtotal } from "@/data/quotations";
 import { amount, baht, queueTag } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Customer, Lot, Quotation } from "@/lib/types";
 import { Logo } from "@/components/ui/Logo";
+import { useSiteSettings } from "@/lib/store/site-settings";
+
+/** File formats the finished work is delivered in. */
+const DELIVERY_FORMATS = "PNG + JPEG";
 
 interface QuotationDocumentProps {
   quotation: Quotation;
@@ -25,6 +31,7 @@ export function QuotationDocument({
   variant = "full",
   className,
 }: QuotationDocumentProps) {
+  const { contactHandle } = useSiteSettings();
   const compact = variant === "compact";
   const lines = quotation.lines.filter((line) => line.item.trim() !== "");
   const sub = subtotal(lines);
@@ -42,9 +49,9 @@ export function QuotationDocument({
       <header className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-ink pb-4">
         <div className="min-w-0">
           <Logo size={compact ? "sm" : "md"} />
-          {!compact ? (
+          {!compact && contactHandle ? (
             <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
-              commission by @torqueue.art
+              commission by {contactHandle}
             </p>
           ) : null}
         </div>
@@ -100,7 +107,7 @@ export function QuotationDocument({
               ตัวละคร
             </p>
             <p className="mt-0.5 text-xs text-body">
-              {customer.commission.dimensions} · PNG + PSD
+              {customer.commission.dimensions} · {DELIVERY_FORMATS}
             </p>
           </div>
         </div>

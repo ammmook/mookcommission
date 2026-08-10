@@ -15,6 +15,31 @@ import type { SiteSettings } from "@/lib/types";
 
 const SETTINGS_COLUMNS = "id, studio_name, contact_handle, updated_at";
 
+/**
+ * Studio name + contact handle for public pages, via the `get_site_settings()`
+ * RPC added in migration 003.
+ *
+ * `site_settings` itself stays admin-only; the function is `security definer`
+ * and returns just those two columns, matching how the other customer-facing
+ * reads work.
+ */
+export async function getPublicSiteSettings(
+  db: Db,
+): Promise<SiteSettings | null> {
+  const { data, error } = await db.rpc("get_site_settings");
+
+  if (error) {
+    // Migration 003 not run yet, or the function is not granted — the caller
+    // falls back to the built-in name rather than failing the page.
+    console.warn("[torqueue] get_site_settings ใช้ไม่ได้", error.message);
+    return null;
+  }
+
+  const row = data?.[0];
+  if (!row) return null;
+  return { studioName: row.studio_name, contactHandle: row.contact_handle };
+}
+
 export async function getSiteSettings(db: Db): Promise<SiteSettings | null> {
   const row = unwrap(
     await db.from("site_settings").select(SETTINGS_COLUMNS).maybeSingle(),

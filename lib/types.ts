@@ -77,6 +77,11 @@ export interface Customer {
   paidDateLabel?: string;
   /** IG / Discord / phone. */
   contact: string | null;
+  /**
+   * Admin-only: `email` is not part of the `queue_public` view, so it never
+   * reaches a customer-facing page.
+   */
+  email: string | null;
   commission: CommissionSpec;
   sketches: Sketch[];
   history: HistoryEntry[];

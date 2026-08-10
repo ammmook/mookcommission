@@ -271,6 +271,7 @@ export function mapQueueEntry(
     amount: resolveAmount(row.amount_paid, quotation),
     paidDateLabel: paidAt ? thaiDate(paidAt) : undefined,
     contact: row.contact,
+    email: row.email,
     commission: {
       type: row.commission_type ?? "—",
       characters: row.character_count,
@@ -315,6 +316,8 @@ export function mapPublicQueue(
     amount: resolveAmount(row.amount_paid, quotation),
     paidDateLabel: paidAt ? thaiDate(paidAt) : undefined,
     contact: null,
+    // `queue_public` deliberately excludes both, so a guessed code leaks nothing.
+    email: null,
     commission: {
       type: row.commission_type ?? "—",
       characters: row.character_count,

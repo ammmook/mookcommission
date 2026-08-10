@@ -42,6 +42,7 @@ interface DetailsForm {
   dimensions: string;
   code: string;
   note: string;
+  email: string;
 }
 
 function formFor(customer: Customer): DetailsForm {
@@ -51,6 +52,7 @@ function formFor(customer: Customer): DetailsForm {
     dimensions: customer.commission.dimensions,
     code: customer.code,
     note: customer.commission.note,
+    email: customer.email ?? "",
   };
 }
 
@@ -108,6 +110,7 @@ export function CustomerEditor({ code }: { code: string }) {
   const save = async () => {
     const message = await updateCustomer(customer.id, {
       code: details.code,
+      email: details.email,
       commission: {
         type: details.type,
         characters: details.characters,
@@ -289,6 +292,17 @@ export function CustomerEditor({ code }: { code: string }) {
                   maxLength={CODE_MAX_LENGTH}
                   onChange={(event) =>
                     setForm({ ...details, code: event.target.value })
+                  }
+                />
+              </Field>
+              <Field label="อีเมลลูกค้า" htmlFor="edit-email" full>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={details.email}
+                  placeholder="name@example.com"
+                  onChange={(event) =>
+                    setForm({ ...details, email: event.target.value })
                   }
                 />
               </Field>

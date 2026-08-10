@@ -15,6 +15,7 @@ const blank = {
   type: "",
   characters: 1,
   note: "",
+  email: "",
 };
 
 export function AddCustomerButton({ compact }: { compact?: boolean }) {
@@ -132,6 +133,17 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field label="อีเมลลูกค้า" htmlFor="new-email" full>
+            <Input
+              id="new-email"
+              type="email"
+              value={form.email}
+              placeholder="name@example.com"
+              onChange={(event) =>
+                setForm({ ...form, email: event.target.value })
+              }
+            />
           </Field>
           <Field label="จำนวนตัวละคร" htmlFor="new-characters">
             <Input

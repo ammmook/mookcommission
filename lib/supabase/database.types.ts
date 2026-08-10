@@ -48,6 +48,8 @@ export type QueueEntryRow = {
   code: string;
   customer_name: string;
   contact: string | null;
+  /** Added by migration 003. Admin-only — deliberately absent from queue_public. */
+  email: string | null;
   commission_type: string | null;
   character_count: number;
   dimensions: string | null;
@@ -283,6 +285,12 @@ export type Database = {
         Returns: QueueDetailPayload | null;
       };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      // Added by migration 003 so customers can read the studio name and
+      // contact handle without `site_settings` itself being readable.
+      get_site_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: { studio_name: string; contact_handle: string | null }[];
+      };
     };
     Enums: {
       lot_status: DbLotStatus;
