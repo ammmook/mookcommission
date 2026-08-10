@@ -13,7 +13,7 @@ import type { QuotationLine } from "@/lib/types";
  */
 
 export const DEFAULT_TERMS =
-  "มัดจำ 50% ก่อนเริ่มลงสี · แก้ไขได้ 2 ครั้ง · ไฟล์ส่งภายใน 14 วันหลังชำระครบ";
+  "💗 หมายเหตุ: งานลงสีจะเริ่มหลังจากชำระเงินเรียบร้อยแล้วนะคะ ชำระเสร็จแล้วสามารถส่งสลิปแจ้งทาง Messenger ได้เลยค่ะ ✨";
 
 export function lineTotal(line: QuotationLine): number {
   return line.qty * line.price;
