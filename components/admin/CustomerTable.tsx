@@ -95,7 +95,7 @@ export function CustomerTable({
                 </td>
                 <td className="py-3 pr-4.5 pl-2.5 text-right">
                   <Link
-                    href={`/admin/customers/${customer.queueNumber}`}
+                    href={`/admin/customers/${customer.code}`}
                     className={cn(
                       "font-display text-[12.5px] font-semibold hover:underline",
                       cancelled ? "text-subtle" : "text-violet",

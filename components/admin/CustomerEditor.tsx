@@ -10,19 +10,19 @@ import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, FormGrid, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { Toggle } from "@/components/ui/Toggle";
 import { lotLabel } from "@/data/lots";
+import { getQuotation } from "@/data/quotations";
 import { baht, queueTag } from "@/lib/format";
 import { STAGE_META, STATE_META } from "@/lib/stages";
+import { useAdminData } from "@/lib/store/admin-store";
 import type {
-  Customer,
   HistoryEntry,
-  Lot,
   PaymentStatus,
   QueueState,
-  Quotation,
   Stage,
 } from "@/lib/types";
 
@@ -33,23 +33,30 @@ const historyDotClasses: Record<HistoryEntry["tone"], string> = {
   coral: "bg-coral",
 };
 
-interface CustomerEditorProps {
-  customer: Customer;
-  lot: Lot;
-  quotation?: Quotation;
-}
-
 /**
- * Local-state editor for one customer. Every control is live but nothing is
- * persisted — swapping `useState` for server actions is the next step.
+ * Editor for one customer, keyed by code so it always reflects the live store —
+ * a customer's lot and queue number can change from the Lot screen.
  */
-export function CustomerEditor({ customer, lot, quotation }: CustomerEditorProps) {
-  const [stage, setStage] = useState<Stage>(customer.stage);
-  const [state, setState] = useState<QueueState>(customer.state);
-  const [payment, setPayment] = useState<PaymentStatus>(customer.payment);
+export function CustomerEditor({ code }: { code: string }) {
+  const { getCustomer, lots, spaceIn, moveCustomer, updateCustomer } =
+    useAdminData();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
 
+  const customer = getCustomer(code);
+  const lot = lots.find((entry) => entry.id === customer?.lotId);
+
+  if (!customer || !lot) return <CustomerMissing />;
+
+  const { stage, state, payment } = customer;
+  const setStage = (next: Stage) => updateCustomer(customer.id, { stage: next });
+  const setState = (next: QueueState) =>
+    updateCustomer(customer.id, { state: next });
+  const setPayment = (next: PaymentStatus) =>
+    updateCustomer(customer.id, { payment: next });
+
+  const quotation = getQuotation(customer.quotationId);
   const paused = state === "paused";
   const cancelled = state === "cancelled";
 
@@ -208,6 +215,47 @@ export function CustomerEditor({ customer, lot, quotation }: CustomerEditorProps
 
         <aside className="flex min-w-0 flex-col gap-4">
           <Card>
+            <CardHeader title="Lot" hint="— ย้ายลูกค้าไปล็อตอื่น" />
+            <Field label="ล็อตปัจจุบัน" htmlFor="customer-lot">
+              <Select
+                id="customer-lot"
+                value={lot.id}
+                onChange={(event) => {
+                  const ok = moveCustomer(customer.id, event.target.value);
+                  setMoveError(ok ? null : "ล็อตปลายทางเต็มแล้ว");
+                }}
+              >
+                {lots.map((option) => {
+                  const space = spaceIn(option.id);
+                  const isCurrent = option.id === lot.id;
+                  return (
+                    <option
+                      key={option.id}
+                      value={option.id}
+                      disabled={!isCurrent && space === 0}
+                    >
+                      {lotLabel(option)}
+                      {isCurrent ? " (ปัจจุบัน)" : ` · เหลือ ${space} คิว`}
+                    </option>
+                  );
+                })}
+              </Select>
+            </Field>
+            {moveError ? (
+              <p
+                role="alert"
+                className="mt-2 text-[11.5px] font-medium text-coral-text"
+              >
+                {moveError}
+              </p>
+            ) : (
+              <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
+                ย้ายแล้วระบบจะออกเลขคิวว่างถัดไปในล็อตปลายทางให้อัตโนมัติ
+              </p>
+            )}
+          </Card>
+
+          <Card>
             <CardHeader title="การชำระเงิน" />
             <div
               className={
@@ -269,7 +317,7 @@ export function CustomerEditor({ customer, lot, quotation }: CustomerEditorProps
               </p>
             )}
             <LinkButton
-              href={`/admin/customers/${customer.queueNumber}/quotation`}
+              href={`/admin/customers/${customer.code}/quotation`}
               variant="outline"
               fullWidth
               className="border-2 border-ink"
@@ -353,5 +401,22 @@ export function CustomerEditor({ customer, lot, quotation }: CustomerEditorProps
         </p>
       </Modal>
     </>
+  );
+}
+
+/** Shown when the customer was deleted from the Lot screen in this session. */
+function CustomerMissing() {
+  return (
+    <EmptyState
+      className="mx-auto max-w-md"
+      dashed
+      title="ไม่พบลูกค้ารายนี้แล้ว"
+      description="ลูกค้าอาจถูกลบออกจากระบบไปแล้ว ลองกลับไปที่รายชื่อลูกค้า"
+      action={
+        <LinkButton href="/admin/customers" size="lg" fullWidth>
+          กลับรายชื่อลูกค้า
+        </LinkButton>
+      }
+    />
   );
 }

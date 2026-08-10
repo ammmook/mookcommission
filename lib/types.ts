@@ -26,8 +26,6 @@ export interface Lot {
   number: number;
   status: LotStatus;
   capacity: number;
-  /** How many queue slots are taken. */
-  filled: number;
   queueRange: string;
   /** Thai-formatted date string, pre-rendered to keep mock data simple. */
   dateLabel: string;

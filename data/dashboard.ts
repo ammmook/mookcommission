@@ -1,6 +1,4 @@
-import type { ActionItem, Stage } from "@/lib/types";
-import { customers } from "./customers";
-import { activeLot } from "./lots";
+import type { ActionItem, Customer, Stage } from "@/lib/types";
 
 export const actionItems: ActionItem[] = [
   {
@@ -9,7 +7,7 @@ export const actionItems: ActionItem[] = [
     label: "#06 Nammon รอชำระเงิน 3 วัน",
     shortLabel: "#06 รอชำระเงิน 3 วัน",
     actionLabel: "ดู",
-    href: "/admin/customers/6",
+    href: "/admin/customers/NM006",
   },
   {
     id: "a2",
@@ -17,7 +15,7 @@ export const actionItems: ActionItem[] = [
     label: "#07 Bright ร่างเสร็จ · ยังไม่ออกใบ",
     shortLabel: "#07 ยังไม่ออกใบเสนอราคา",
     actionLabel: "ออกใบ",
-    href: "/admin/customers/7/quotation",
+    href: "/admin/customers/BR007/quotation",
   },
   {
     id: "a3",
@@ -25,7 +23,7 @@ export const actionItems: ActionItem[] = [
     label: "#04 Ploy หยุดชั่วคราว 5 วัน",
     shortLabel: "#04 หยุดชั่วคราว 5 วัน",
     actionLabel: "ดู",
-    href: "/admin/customers/4",
+    href: "/admin/customers/PL004",
   },
 ];
 
@@ -47,18 +45,16 @@ export const dashboardStats: DashboardStats = {
   currentQueueDetail: "Mook · กำลังลงสี",
 };
 
-/** Stage counts inside the active lot, for the breakdown bars. */
-export function activeLotBreakdown(): Array<{
+/** Stage counts for the breakdown bars, over whichever customers are passed in. */
+export function stageBreakdown(source: Customer[]): Array<{
   label: string;
   stage: Stage | "awaiting-payment";
   count: number;
   barClass: string;
 }> {
-  const inLot = customers.filter(
-    (c) => c.lotId === activeLot.id && c.state !== "cancelled",
-  );
+  const active = source.filter((c) => c.state !== "cancelled");
   const count = (predicate: (stage: Stage) => boolean) =>
-    inLot.filter((c) => predicate(c.stage)).length;
+    active.filter((c) => predicate(c.stage)).length;
 
   return [
     {

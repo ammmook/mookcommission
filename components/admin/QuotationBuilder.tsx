@@ -6,32 +6,63 @@ import { useState } from "react";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { QuotationDocument } from "@/components/quotation/QuotationDocument";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Input, Textarea } from "@/components/ui/Field";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { emptyLine, subtotal } from "@/data/quotations";
+import { emptyLine, getQuotation, subtotal } from "@/data/quotations";
 import { baht, queueTag } from "@/lib/format";
-import type { Customer, Lot, Quotation, QuotationLine } from "@/lib/types";
+import { useAdminData } from "@/lib/store/admin-store";
+import type { Quotation, QuotationLine } from "@/lib/types";
 
-interface QuotationBuilderProps {
-  customer: Customer;
-  lot: Lot;
-  quotation: Quotation;
+const BLANK_TERMS =
+  "มัดจำ 50% ก่อนเริ่มลงสี · แก้ไขได้ 2 ครั้ง · ไฟล์ส่งภายใน 14 วันหลังชำระครบ";
+
+/** Customers without a quotation start from a blank draft. */
+function blankQuotation(customerId: string): Quotation {
+  return {
+    id: `qt-new-${customerId}`,
+    number: "QT-2569-NEW",
+    customerId,
+    status: "draft",
+    lines: [{ id: "l1", item: "", qty: 1, price: 0 }],
+    discount: 0,
+    terms: BLANK_TERMS,
+  };
 }
 
 /**
  * Line-item editor with a live preview. Desktop shows both side by side; below
  * `lg` they become tabs so neither pane gets squeezed.
  */
-export function QuotationBuilder({
-  customer,
-  lot,
-  quotation,
-}: QuotationBuilderProps) {
+export function QuotationBuilder({ code }: { code: string }) {
+  const { getCustomer, lots } = useAdminData();
+  const customer = getCustomer(code);
+  const quotation =
+    getQuotation(customer?.quotationId ?? null) ??
+    blankQuotation(customer?.id ?? code);
+
   const [lines, setLines] = useState<QuotationLine[]>(quotation.lines);
   const [terms, setTerms] = useState(quotation.terms);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [issued, setIssued] = useState(quotation.status === "issued");
+
+  const lot = lots.find((entry) => entry.id === customer?.lotId);
+  if (!customer || !lot) {
+    return (
+      <EmptyState
+        className="mx-auto max-w-md"
+        dashed
+        title="ไม่พบลูกค้ารายนี้แล้ว"
+        description="ลูกค้าอาจถูกลบออกจากระบบไปแล้ว ลองกลับไปที่รายชื่อลูกค้า"
+        action={
+          <LinkButton href="/admin/customers" size="lg" fullWidth>
+            กลับรายชื่อลูกค้า
+          </LinkButton>
+        }
+      />
+    );
+  }
 
   const updateLine = (id: string, patch: Partial<QuotationLine>) =>
     setLines((current) =>
@@ -58,7 +89,7 @@ export function QuotationBuilder({
     <>
       <header className="mb-4 flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
         <Link
-          href={`/admin/customers/${customer.queueNumber}`}
+          href={`/admin/customers/${customer.code}`}
           className="hidden items-center gap-1.5 text-[12.5px] font-medium text-body transition-colors hover:text-ink md:inline-flex"
         >
           <ArrowLeft size={14} aria-hidden="true" />

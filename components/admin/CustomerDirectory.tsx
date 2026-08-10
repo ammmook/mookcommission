@@ -7,9 +7,9 @@ import { CustomerTable } from "./CustomerTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SegmentedControl, type Segment } from "@/components/ui/SegmentedControl";
 import { Select } from "@/components/ui/Field";
-import { lots, lotLabel } from "@/data/lots";
+import { lotLabel } from "@/data/lots";
 import { STAGE_ORDER, STAGE_META } from "@/lib/stages";
-import type { Customer } from "@/lib/types";
+import { useAdminData } from "@/lib/store/admin-store";
 
 const ALL = "all";
 
@@ -24,17 +24,14 @@ const statusOptions = [
   { value: "cancelled", label: "ยกเลิกแล้ว" },
 ];
 
-interface CustomerDirectoryProps {
-  customers: Customer[];
-  currentQueueNumber: number;
-  addButton: React.ReactNode;
-}
-
 export function CustomerDirectory({
-  customers,
   currentQueueNumber,
   addButton,
-}: CustomerDirectoryProps) {
+}: {
+  currentQueueNumber: number;
+  addButton: React.ReactNode;
+}) {
+  const { lots, customers } = useAdminData();
   const [query, setQuery] = useState("");
   const [lotFilter, setLotFilter] = useState(ALL);
   const [status, setStatus] = useState(ALL);
@@ -44,9 +41,19 @@ export function CustomerDirectory({
     ...lots.map((lot) => ({ value: lot.id, label: lotLabel(lot) })),
   ];
 
+  // Newest lot first, then by queue number — matches "เรียงตามเลขคิว".
+  const sorted = useMemo(
+    () =>
+      [...customers].sort(
+        (a, b) =>
+          b.lotId.localeCompare(a.lotId) || a.queueNumber - b.queueNumber,
+      ),
+    [customers],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return customers.filter((customer) => {
+    return sorted.filter((customer) => {
       if (lotFilter !== ALL && customer.lotId !== lotFilter) return false;
 
       if (status !== ALL) {
@@ -62,7 +69,7 @@ export function CustomerDirectory({
         customer.code.toLowerCase().includes(q)
       );
     });
-  }, [customers, query, lotFilter, status]);
+  }, [sorted, query, lotFilter, status]);
 
   return (
     <>

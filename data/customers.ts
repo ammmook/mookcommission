@@ -236,6 +236,13 @@ function archivedCustomers(): Customer[] {
     ["Tonkla", "TK101", 1, "lot-01", "completed"],
     ["Mild", "ML102", 2, "lot-01", "completed"],
     ["Earth", "ER103", 3, "lot-01", "completed"],
+    ["Ploy P.", "PP104", 4, "lot-01", "completed"],
+    ["Gun", "GN105", 5, "lot-01", "completed"],
+    ["Nine", "NN106", 6, "lot-01", "completed"],
+    ["Pream", "PR107", 7, "lot-01", "completed"],
+    ["Title", "TT108", 8, "lot-01", "completed"],
+    ["Bas", "BS109", 9, "lot-01", "completed"],
+    ["View", "VW110", 10, "lot-01", "completed"],
   ];
 
   return rows.map(([name, code, queueNumber, lotId, stage]) => ({

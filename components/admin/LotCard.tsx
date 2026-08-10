@@ -4,7 +4,8 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { cn } from "@/lib/cn";
 import type { Lot } from "@/lib/types";
 
-export function LotCard({ lot }: { lot: Lot }) {
+/** `filled` is passed in because it is derived from the live customer list. */
+export function LotCard({ lot, filled }: { lot: Lot; filled: number }) {
   const active = lot.status === "active";
 
   return (
@@ -36,7 +37,7 @@ export function LotCard({ lot }: { lot: Lot }) {
             active ? "text-body" : "text-subtle",
           )}
         >
-          {lot.filled} / {lot.capacity}
+          {filled} / {lot.capacity}
         </span>
       </div>
 
@@ -45,7 +46,7 @@ export function LotCard({ lot }: { lot: Lot }) {
       </p>
 
       <ProgressBar
-        value={lot.filled}
+        value={filled}
         total={lot.capacity}
         label={`ความคืบหน้า ${lotLabel(lot)}`}
         fillClass={active ? "bg-linear-to-r from-teal to-sky" : "bg-ghost"}

@@ -1,9 +1,10 @@
-import { activeLotBreakdown } from "@/data/dashboard";
+import { stageBreakdown } from "@/data/dashboard";
 import { percent } from "@/lib/format";
+import type { Customer } from "@/lib/types";
 
-/** Horizontal bars showing how the active lot is distributed across stages. */
-export function LotBreakdown() {
-  const rows = activeLotBreakdown();
+/** Horizontal bars showing how a lot is distributed across stages. */
+export function LotBreakdown({ customers }: { customers: Customer[] }) {
+  const rows = stageBreakdown(customers);
   const max = Math.max(1, ...rows.map((row) => row.count));
 
   return (

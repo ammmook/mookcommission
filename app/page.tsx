@@ -3,7 +3,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { QueueSearchForm } from "@/components/queue/QueueSearchForm";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
-import { activeLot, lotLabel } from "@/data/lots";
+import { activeLot, lotFilled, lotLabel } from "@/data/lots";
 
 const STEPS = [
   {
@@ -43,7 +43,7 @@ export default function LandingPage() {
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-teal"
                 />
-                {lotLabel(activeLot)} กำลังเปิดรับ · {activeLot.filled}/
+                {lotLabel(activeLot)} กำลังเปิดรับ · {lotFilled(activeLot.id)}/
                 {activeLot.capacity} คิว
               </p>
 

@@ -19,7 +19,7 @@ export function CustomerCard({
 
   return (
     <Link
-      href={`/admin/customers/${customer.queueNumber}`}
+      href={`/admin/customers/${customer.code}`}
       className={cn(
         "block rounded-card border-[1.5px] border-l-5 border-line bg-surface p-4 transition-shadow hover:shadow-[0_4px_14px_rgba(43,35,64,.08)]",
         accentBorderClass(customer.stage, customer.state),
