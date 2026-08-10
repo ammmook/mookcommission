@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
+import { HERO_ILLUSTRATION } from "@/lib/illustrations";
 import { Logo } from "@/components/ui/Logo";
 
 export const metadata: Metadata = { title: "เข้าสู่ระบบผู้ดูแล" };
@@ -24,6 +25,8 @@ export default function AdminLoginPage() {
             label="ILLUSTRATION"
             hatch={false}
             dashed={false}
+            src={HERO_ILLUSTRATION}
+            sizes="(min-width: 1024px) 1px, 100vw"
             className="mt-5 h-32 rounded-2xl border-none bg-linear-150 from-ink to-[#5A3F7A] text-white/55 lg:hidden"
           />
 
@@ -31,7 +34,7 @@ export default function AdminLoginPage() {
             ยินดีต้อนรับกลับมา
           </h1>
           <p className="mt-1.5 text-[13px] text-body">
-            เข้าสู่ระบบเพื่อจัดการคิวและลูกค้า
+            เข้าสู่ระบบเฉพาะแอดมิน/นักวาดเท่านั้น
           </p>
 
           {/* The form reads `?next=` via useSearchParams, which needs a boundary. */}
@@ -61,13 +64,10 @@ export default function AdminLoginPage() {
               label="ILLUSTRATION"
               hatch={false}
               dashed={false}
+              src={HERO_ILLUSTRATION}
+              sizes="(min-width: 1024px) 180px, 1px"
               className="mx-auto size-45 rounded-3xl border-[1.5px] border-dashed border-white/30 bg-white/5 text-white/55 animate-float"
             />
-            <p className="mt-4.5 text-[13px] leading-relaxed text-white/80">
-              จัดคิว ออกใบเสนอราคา
-              <br />
-              และอัปเดตลูกค้าได้ในที่เดียว
-            </p>
           </div>
         </aside>
       </div>

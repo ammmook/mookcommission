@@ -8,30 +8,8 @@ import {
   ActiveLotPillSkeleton,
 } from "@/components/queue/ActiveLotPill";
 import { ArtPlaceholder } from "@/components/ui/ArtPlaceholder";
+import { HERO_ILLUSTRATION } from "@/lib/illustrations";
 
-const STEPS = [
-  {
-    icon: "🔍",
-    iconBg: "bg-coral-tint",
-    title: "ค้นหาคิว",
-    description: "ใส่รหัสคิวที่ศิลปินให้ไว้ หรือชื่อของคุณ",
-    short: "ใส่รหัสหรือชื่อ",
-  },
-  {
-    icon: "📋",
-    iconBg: "bg-violet-bg",
-    title: "ดูคิวของคุณ",
-    description: "เห็นเลขคิวและจำนวนคิวที่เหลือทันที",
-    short: "เหลืออีกกี่คิว",
-  },
-  {
-    icon: "🎨",
-    iconBg: "bg-teal-bg",
-    title: "ติดตามงาน",
-    description: "ดูภาพร่าง สถานะชำระเงิน และใบเสนอราคา",
-    short: "ภาพร่าง · การชำระเงิน",
-  },
-];
 
 export default function LandingPage() {
   return (
@@ -48,18 +26,19 @@ export default function LandingPage() {
               </Suspense>
 
               <h1 className="mt-3.5 text-[clamp(1.85rem,7vw,2.875rem)] leading-[1.2] font-bold text-ink">
-                เช็กคิว Commission
-                <br className="hidden sm:inline" /> ของคุณได้ทันที
+                ระบบค้นหาคิว @ammmook
               </h1>
 
               <p className="mt-2.5 max-w-md text-[13.5px] leading-relaxed text-body sm:text-[15px]">
-                ใส่รหัสคิวหรือชื่อของคุณ แล้วดูได้เลยว่างานถึงขั้นตอนไหน
-                เหลืออีกกี่คิว และต้องชำระเงินหรือยัง
+                ใส่รหัสคิวที่ได้จากนักวาด
               </p>
 
               {/* Illustration sits between copy and form on phones, beside them on desktop. */}
               <ArtPlaceholder
                 label="ILLUSTRATION"
+                src={HERO_ILLUSTRATION}
+                priority
+                sizes="(min-width: 1024px) 1px, 100vw"
                 className="my-5 h-37.5 w-full rounded-3xl lg:hidden"
               />
 
@@ -69,6 +48,9 @@ export default function LandingPage() {
             <aside aria-hidden="true" className="relative hidden h-80 lg:block">
               <ArtPlaceholder
                 label="ILLUSTRATION · artist at desk"
+                src={HERO_ILLUSTRATION}
+                priority
+                sizes="(min-width: 1024px) 520px, 1px"
                 className="absolute inset-y-6 right-0 left-5 rounded-3xl"
               />
               <div className="absolute top-1.5 -left-1 rounded-2xl border-[1.5px] border-line bg-white px-4 py-2.5 shadow-[0_8px_20px_rgba(43,35,64,.1)] animate-float">
@@ -87,41 +69,6 @@ export default function LandingPage() {
               </div>
             </aside>
           </div>
-
-          <section id="how-it-works" className="mt-10 scroll-mt-24 sm:mt-14">
-            <h2 className="mb-4 text-[17px] font-semibold text-ink">
-              ใช้งานง่าย 3 ขั้นตอน{" "}
-              <span className="font-sans text-xs font-normal text-subtle">
-                / How it works
-              </span>
-            </h2>
-            <ol className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-              {STEPS.map((step, index) => (
-                <li
-                  key={step.title}
-                  className="flex items-center gap-3 rounded-card border-[1.5px] border-line bg-white p-4 sm:flex-col sm:items-start sm:p-5"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`grid size-9 shrink-0 place-items-center rounded-xl text-lg sm:size-9.5 ${step.iconBg}`}
-                  >
-                    {step.icon}
-                  </span>
-                  <span className="min-w-0">
-                    <h3 className="text-[15px] font-semibold text-ink sm:mt-3">
-                      {index + 1}. {step.title}
-                    </h3>
-                    <p className="mt-0.5 text-xs leading-relaxed text-body sm:mt-1 sm:text-[12.5px]">
-                      <span className="sm:hidden">{step.short}</span>
-                      <span className="hidden sm:inline">
-                        {step.description}
-                      </span>
-                    </p>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
         </PageContainer>
       </main>
 

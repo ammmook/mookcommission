@@ -60,7 +60,7 @@ export function QueueSearchForm({ className }: { className?: string }) {
             setQuery(event.target.value);
             if (error) setError(null);
           }}
-          placeholder="เช่น MK001 หรือ ชื่อของคุณ"
+          placeholder="่johndoexxxxx.."
           aria-describedby={error ? "queue-code-error" : undefined}
           aria-invalid={error ? true : undefined}
           className="min-w-0 flex-1 rounded-2xl border-2 border-line-strong bg-white px-4 py-3.5 text-[15px] text-ink outline-none transition-colors placeholder:text-subtle focus:border-violet"
@@ -84,11 +84,7 @@ export function QueueSearchForm({ className }: { className?: string }) {
         >
           {error}
         </p>
-      ) : (
-        <p className="mt-3 text-xs text-subtle">
-          ไม่ต้องสมัครสมาชิก · ค้นหาได้ทุกเวลา
-        </p>
-      )}
+      ) : null}
     </form>
   );
 }

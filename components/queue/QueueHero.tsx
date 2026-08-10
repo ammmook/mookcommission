@@ -90,8 +90,7 @@ function PausedHero({ customer }: { customer: Customer }) {
       </h1>
       <p className="mt-1 text-sm font-medium text-[#FFE0AE]">คิวนี้หยุดชั่วคราว</p>
       <p className="mt-3.5 max-w-prose text-[12.5px] leading-relaxed text-white/80">
-        ศิลปินพักงานชั่วคราว คิวของคุณจะไม่ถูกข้าม
-        และจะกลับมาดำเนินการต่อจากขั้นตอนเดิม
+        ศิลปินพักงานชั่วคราว หากพบปัญหากรุณาติดต่อทางเฟสบุ๊ค
       </p>
     </section>
   );
@@ -113,7 +112,7 @@ function CancelledHero({ customer }: { customer: Customer }) {
         ยกเลิกแล้ว / Cancelled
       </p>
       <p className="mt-3 max-w-prose text-[12.5px] leading-relaxed text-[#8A8377]">
-        คิวนี้ถูกยกเลิก เลขคิวยังคงอยู่ในระบบแต่ไม่ได้อยู่ระหว่างดำเนินการ
+        คิวนี้ถูกยกเลิก หากพบปัญหากรุณาติดต่อทางเฟสบุ๊ค
       </p>
     </section>
   );

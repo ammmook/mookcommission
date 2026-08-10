@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 interface ArtPlaceholderProps {
@@ -8,11 +9,28 @@ interface ArtPlaceholderProps {
   dashed?: boolean;
   /** Turn off the cream hatch when the caller supplies its own background. */
   hatch?: boolean;
+  /**
+   * Real artwork to show instead of the hatch. The image is cropped to fill
+   * whatever box `className` defines — the frontend decides the size, not the
+   * file's own dimensions.
+   */
+  src?: string | null;
+  /** Describes the artwork. Empty string keeps it decorative for screen readers. */
+  alt?: string;
+  /** Viewport hint so next/image picks a sensible source width. */
+  sizes?: string;
+  /** Set on above-the-fold artwork so it is not lazy-loaded. */
+  priority?: boolean;
 }
 
 /**
- * Stands in for artwork that a real build would load through next/image.
- * Kept as a component so swapping in <Image> later is a one-file change.
+ * Artwork slot: renders `src` when there is one, and the hatched placeholder
+ * when there is not (a bucket that has not been filled in yet, or Supabase not
+ * configured).
+ *
+ * With `src`, only `overflow-hidden` is added to the caller's classes —
+ * `cn` is a plain join with no conflict resolution, so introducing sizing,
+ * rounding or positioning utilities here could silently fight the caller's.
  */
 export function ArtPlaceholder({
   label,
@@ -20,7 +38,29 @@ export function ArtPlaceholder({
   dense,
   dashed = true,
   hatch = true,
+  src,
+  alt = "",
+  sizes = "(max-width: 1024px) 100vw, 480px",
+  priority,
 }: ArtPlaceholderProps) {
+  if (src) {
+    return (
+      <div className={cn("overflow-hidden", className)}>
+        {/* width/height only seed the aspect ratio for srcset generation; the
+            classes below are what actually size the image. */}
+        <Image
+          src={src}
+          alt={alt}
+          width={900}
+          height={900}
+          sizes={sizes}
+          priority={priority}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       aria-hidden="true"

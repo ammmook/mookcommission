@@ -84,7 +84,7 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
             <Input
               id="new-name"
               value={form.name}
-              placeholder="เช่น Mook"
+              placeholder="John Doe"
               onChange={(event) =>
                 setForm({ ...form, name: event.target.value })
               }
@@ -94,7 +94,7 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
             <Input
               id="new-code"
               value={form.code}
-              placeholder="ตั้งรหัสเองได้ เช่น MK001"
+              placeholder="johndoe-xxx-..."
               maxLength={CODE_MAX_LENGTH}
               mono
               onChange={(event) =>
