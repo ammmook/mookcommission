@@ -62,7 +62,7 @@ export function QueueSearchForm({ className }: { className?: string }) {
             setQuery(event.target.value);
             if (error) setError(null);
           }}
-          placeholder="johndoexxxxx.."
+          placeholder="johndoe-xxxxx.."
           aria-describedby={error ? "queue-code-error" : undefined}
           aria-invalid={error ? true : undefined}
           className="min-w-0 flex-1 rounded-2xl border-[1.5px] border-line-strong bg-white px-4 py-3.5 text-[15px] text-ink shadow-[0_2px_8px_rgba(43,35,64,.05)] outline-none transition-colors placeholder:text-subtle focus:border-coral sm:px-5"

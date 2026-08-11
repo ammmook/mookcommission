@@ -7,12 +7,19 @@
  * Postgres) the comment says so.
  */
 
-/** The five stages a commission moves through, in order. */
+/**
+ * The six stages a commission moves through, in order:
+ * รอคิว → จ่ายมัดจำ → ร่างภาพ → กำลังลงสี → ชำระเงิน → เสร็จสิ้น.
+ *
+ * `deposit` is the up-front payment and `payment` the balance at the end; both
+ * read `payment_status`, which still tracks settlement as a single flag.
+ */
 export type Stage =
   | "waiting"
+  | "deposit"
   | "sketch"
-  | "payment"
   | "coloring"
+  | "payment"
   | "completed";
 
 /** Lifecycle state that sits alongside the stage. */

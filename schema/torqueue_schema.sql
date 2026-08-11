@@ -7,7 +7,8 @@
 
 -- ---------- 0) ENUM ----------
 create type lot_status       as enum ('open', 'closed');
-create type work_stage       as enum ('waiting', 'sketch', 'payment', 'coloring', 'completed');
+-- ลำดับงาน: รอคิว → จ่ายมัดจำ → ร่างภาพ → กำลังลงสี → ชำระเงิน → เสร็จสิ้น
+create type work_stage       as enum ('waiting', 'deposit', 'sketch', 'coloring', 'payment', 'completed');
 create type queue_state      as enum ('active', 'paused', 'cancelled');
 create type payment_status   as enum ('unpaid', 'paid');
 create type quotation_status as enum ('draft', 'issued');

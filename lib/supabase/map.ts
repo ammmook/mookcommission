@@ -90,9 +90,10 @@ export function mapSketch(row: SketchRow, publicUrl: string): Sketch {
 
 const STAGE_VALUES: Stage[] = [
   "waiting",
+  "deposit",
   "sketch",
-  "payment",
   "coloring",
+  "payment",
   "completed",
 ];
 
@@ -102,9 +103,10 @@ function isStage(value: string): value is Stage {
 
 const STAGE_TH: Record<Stage, string> = {
   waiting: "รอคิว",
+  deposit: "จ่ายมัดจำ",
   sketch: "ร่างภาพ",
-  payment: "ชำระเงิน",
   coloring: "กำลังลงสี",
+  payment: "ชำระเงิน",
   completed: "เสร็จสิ้น",
 };
 

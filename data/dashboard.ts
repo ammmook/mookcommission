@@ -20,9 +20,10 @@ export interface DashboardStats {
 
 const STAGE_TH: Record<Stage, string> = {
   waiting: "รอคิว",
+  deposit: "รอมัดจำ",
   sketch: "ร่างภาพ",
-  payment: "รอชำระเงิน",
   coloring: "กำลังลงสี",
+  payment: "รอชำระเงิน",
   completed: "เสร็จสิ้น",
 };
 
@@ -91,12 +92,17 @@ export function actionItemsFor(roster: Customer[]): ActionItem[] {
       continue;
     }
 
-    if (customer.stage === "payment" && customer.payment === "unpaid") {
+    // Both money stages need chasing; only the wording differs.
+    if (
+      (customer.stage === "payment" || customer.stage === "deposit") &&
+      customer.payment === "unpaid"
+    ) {
+      const what = customer.stage === "deposit" ? "รอมัดจำ" : "รอชำระเงิน";
       items.push({
         id: `pay-${customer.id}`,
         tone: "amber",
-        label: `${queueTag(customer.queueNumber)} ${customer.name} รอชำระเงิน`,
-        shortLabel: `${queueTag(customer.queueNumber)} รอชำระเงิน`,
+        label: `${queueTag(customer.queueNumber)} ${customer.name} ${what}`,
+        shortLabel: `${queueTag(customer.queueNumber)} ${what}`,
         actionLabel: "ดู",
         href: `/admin/customers/${customer.code}`,
       });
@@ -137,22 +143,28 @@ export function stageBreakdown(source: Customer[]): Array<{
       barClass: "bg-subtle",
     },
     {
+      label: "มัดจำ",
+      stage: "deposit",
+      count: count((s) => s === "deposit"),
+      barClass: "bg-coral",
+    },
+    {
       label: "ร่างภาพ",
       stage: "sketch",
       count: count((s) => s === "sketch"),
       barClass: "bg-sky",
     },
     {
-      label: "รอชำระ",
-      stage: "awaiting-payment",
-      count: count((s) => s === "payment"),
-      barClass: "bg-amber",
-    },
-    {
       label: "ลงสี",
       stage: "coloring",
       count: count((s) => s === "coloring"),
       barClass: "bg-violet",
+    },
+    {
+      label: "รอชำระ",
+      stage: "awaiting-payment",
+      count: count((s) => s === "payment"),
+      barClass: "bg-amber",
     },
     {
       label: "เสร็จสิ้น",

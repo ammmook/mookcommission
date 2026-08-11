@@ -13,7 +13,7 @@ import { useAdminData } from "@/lib/store/admin-store";
 
 const ALL = "all";
 
-/** Status filter values: the five stages plus the two lifecycle states. */
+/** Status filter values: every stage plus the two lifecycle states. */
 const statusOptions = [
   { value: ALL, label: "ทั้งหมด" },
   ...STAGE_ORDER.map((stage) => ({

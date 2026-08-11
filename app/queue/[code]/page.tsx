@@ -69,7 +69,7 @@ export default async function QueuePage({ params }: PageProps<"/queue/[code]">) 
 
               {isCancelled ? (
                 <LinkButton href="/" variant="outline" size="lg" fullWidth>
-                  ติดต่อศิลปิน
+                  ติดต่อนักวาด
                 </LinkButton>
               ) : (
                 <>
@@ -92,7 +92,7 @@ export default async function QueuePage({ params }: PageProps<"/queue/[code]">) 
                       <SketchGallery sketches={customer.sketches} />
                     ) : (
                       <p className="rounded-2xl border-[1.5px] border-dashed border-line-dashed bg-surface-muted px-4 py-6 text-center text-[12.5px] text-body">
-                        ยังไม่มีภาพร่าง · ศิลปินจะอัปโหลดเมื่อเริ่มงาน
+                        ยังไม่มีภาพร่าง · นักวาดจะอัปโหลดเมื่อเริ่มงาน
                       </p>
                     )}
                   </Card>
@@ -122,12 +122,12 @@ export default async function QueuePage({ params }: PageProps<"/queue/[code]">) 
                 // The mockup hides the button until a quotation exists; we show
                 // why instead, so the absence isn't confusing.
                 <p className="rounded-2xl border-[1.5px] border-line bg-surface-muted px-4 py-3 text-center text-[11.5px] leading-relaxed text-subtle">
-                  ใบเสนอราคาจะออกให้หลังจากศิลปินร่างภาพเสร็จ
+                  ใบเสนอราคาจะออกให้หลังจากคุยรายละเอียดเสร็จ
                 </p>
               ) : null}
 
               <p className="text-center text-[11.5px] leading-relaxed text-subtle">
-                อัปเดตล่าสุด {customer.updatedLabel} · หากมีคำถามทักหาศิลปินได้เลย
+                อัปเดตล่าสุด {customer.updatedLabel} · หากมีคำถามทักหานักวาดได้เลย
               </p>
             </aside>
           </div>

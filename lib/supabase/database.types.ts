@@ -15,9 +15,10 @@
 export type DbLotStatus = "open" | "closed";
 export type DbWorkStage =
   | "waiting"
+  | "deposit"
   | "sketch"
-  | "payment"
   | "coloring"
+  | "payment"
   | "completed";
 export type DbQueueState = "active" | "paused" | "cancelled";
 export type DbPaymentStatus = "unpaid" | "paid";

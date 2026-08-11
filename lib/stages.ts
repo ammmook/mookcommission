@@ -30,6 +30,16 @@ export const STAGE_META: Record<Stage, StageMeta> = {
     en: "WAITING",
     tone: neutralTone,
   },
+  deposit: {
+    stage: "deposit",
+    th: "จ่ายมัดจำ",
+    en: "DEPOSIT",
+    tone: {
+      pill: "bg-coral-bg text-coral-text",
+      dot: "bg-coral",
+      fill: "bg-coral",
+    },
+  },
   sketch: {
     stage: "sketch",
     th: "ร่างภาพ",
@@ -75,9 +85,10 @@ export const STAGE_META: Record<Stage, StageMeta> = {
 /** Ordered list — drives steppers and "how far along" calculations. */
 export const STAGE_ORDER: Stage[] = [
   "waiting",
+  "deposit",
   "sketch",
-  "payment",
   "coloring",
+  "payment",
   "completed",
 ];
 
@@ -86,11 +97,14 @@ export function stageIndex(stage: Stage): number {
 }
 
 /**
- * A customer whose queue is waiting for money shows "รอชำระเงิน" rather than the
- * bare stage name — the mockup's customer table does this for #06.
+ * A customer whose queue is waiting for money shows what is owed rather than
+ * the bare stage name — the mockup's customer table does this for #06.
  */
 export function stageLabel(stage: Stage, payment: PaymentStatus): string {
-  if (stage === "payment" && payment === "unpaid") return "รอชำระเงิน";
+  if (payment === "unpaid") {
+    if (stage === "deposit") return "รอมัดจำ";
+    if (stage === "payment") return "รอชำระเงิน";
+  }
   return STAGE_META[stage].th;
 }
 
@@ -148,6 +162,8 @@ export function accentBorderClass(
       return "border-l-violet";
     case "sketch":
       return "border-l-sky";
+    case "deposit":
+      return "border-l-coral";
     case "payment":
       return "border-l-amber";
     case "completed":
