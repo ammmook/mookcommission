@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: studioName, template: `%s · ${studioName}` },
     description:
-      "ระบบจัดการคิว Commission สำหรับศิลปิน — เช็กคิว ติดตามสถานะงาน และดูใบเสนอราคาได้ทันที",
+      "ระบบค้นหาคิว @ammmook — ใส่รหัสที่ได้จากนักวาด",
   };
 }
 

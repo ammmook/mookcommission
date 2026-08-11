@@ -77,6 +77,10 @@
 
   --animate-pulse-ring: tq-pulse 2.4s infinite;
   --animate-float: tq-float 5s ease-in-out infinite;
+  /* Homepage decoration — keeps any `--r` tilt while it floats. */
+  --animate-float-slow: tq-float-slow 8s ease-in-out infinite;
+  --animate-twinkle: tq-twinkle 3.4s ease-in-out infinite;
+  --animate-drift: tq-drift 18s ease-in-out infinite;
   --animate-shimmer: tq-shimmer 1.3s infinite linear;
   --animate-fade-in: tq-fade-in 0.16s ease-out;
   --animate-scale-in: tq-scale-in 0.18s ease-out;
@@ -100,6 +104,38 @@
   }
   50% {
     transform: translateY(-6px);
+  }
+}
+
+@keyframes tq-float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--r, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(var(--r, 0deg));
+  }
+}
+
+@keyframes tq-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes tq-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(14px, -18px, 0);
   }
 }
 

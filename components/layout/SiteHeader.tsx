@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 // "วิธีใช้งาน" pointed at #how-it-works, which no longer exists on the landing
 // page — a nav item that scrolls nowhere is worse than one less link.
 const NAV_LINKS = [
-  { href: "/", label: "เช็กคิว" },
+  { href: "/", label: "งานของคุณ" },
   { href: "/#contact", label: "ติดต่อศิลปิน" },
 ] as const;
 
