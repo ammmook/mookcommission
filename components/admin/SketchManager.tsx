@@ -4,6 +4,7 @@ import { Plus, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { CardHeader } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { reportError } from "@/lib/supabase/errors";
 import {
@@ -26,6 +27,7 @@ export function SketchManager({ customer }: { customer: Customer }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   // No local copy: the store refetches after each upload or delete, so this is
   // always the current list.
@@ -41,14 +43,20 @@ export function SketchManager({ customer }: { customer: Customer }) {
 
     setError(null);
     setPending(true);
+    const progress = toast.saving(
+      files.length > 1 ? `กำลังอัปโหลด ${files.length} ภาพ…` : "กำลังอัปโหลดภาพ…",
+    );
 
     const db = supabaseBrowser();
     let sortOrder = sketches.length;
+    let uploaded = 0;
+    let lastError: string | null = null;
 
     for (const file of files) {
       const invalid = validateSketchFile(file);
       if (invalid) {
-        setError(`${file.name}: ${invalid}`);
+        lastError = `${file.name}: ${invalid}`;
+        setError(lastError);
         continue;
       }
       try {
@@ -59,23 +67,34 @@ export function SketchManager({ customer }: { customer: Customer }) {
           sortOrder,
         });
         sortOrder += 1;
+        uploaded += 1;
       } catch (uploadError) {
-        setError(reportError(uploadError, `อัปโหลด ${file.name} ไม่สำเร็จ`));
+        lastError = reportError(uploadError, `อัปโหลด ${file.name} ไม่สำเร็จ`);
+        setError(lastError);
       }
     }
 
     setPending(false);
     await refresh();
+
+    // A partly successful batch reports the failure — that is the part the
+    // artist has to act on.
+    if (lastError) progress.error(lastError);
+    else progress.success(`อัปโหลด ${uploaded} ภาพแล้ว`);
   };
 
   const removeSketch = async (sketch: Sketch) => {
     setError(null);
     setPending(true);
+    const progress = toast.saving("กำลังลบภาพร่าง…");
     try {
       await deleteSketch(supabaseBrowser(), sketch);
       await refresh();
+      progress.success("ลบภาพร่างแล้ว");
     } catch (deleteError) {
-      setError(reportError(deleteError, "ลบภาพร่างไม่สำเร็จ"));
+      const message = reportError(deleteError, "ลบภาพร่างไม่สำเร็จ");
+      setError(message);
+      progress.error(message);
     } finally {
       setPending(false);
     }

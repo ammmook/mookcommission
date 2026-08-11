@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, FormGrid, Input } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { reportError } from "@/lib/supabase/errors";
 import { getSiteSettings, updateSiteSettings } from "@/lib/supabase/settings";
@@ -24,6 +25,7 @@ export function SiteSettingsForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -51,12 +53,16 @@ export function SiteSettingsForm() {
     }
     setPending(true);
     setError(null);
+    const progress = toast.saving();
     try {
       await updateSiteSettings(supabaseBrowser(), { studioName, contactHandle });
       setSaved(true);
+      progress.success();
       window.setTimeout(() => setSaved(false), 2200);
     } catch (saveError) {
-      setError(reportError(saveError, "บันทึกการตั้งค่าไม่สำเร็จ"));
+      const message = reportError(saveError, "บันทึกการตั้งค่าไม่สำเร็จ");
+      setError(message);
+      progress.error(message);
     } finally {
       setPending(false);
     }

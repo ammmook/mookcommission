@@ -11,6 +11,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input, Textarea } from "@/components/ui/Field";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { useToast } from "@/components/ui/Toast";
 import { DEFAULT_TERMS, emptyLine, subtotal } from "@/data/quotations";
 import { baht, queueTag } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -48,6 +49,7 @@ export function QuotationBuilder({ code }: { code: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  const toast = useToast();
 
   const lot = lots.find((entry) => entry.id === customer?.lotId);
 
@@ -91,6 +93,9 @@ export function QuotationBuilder({ code }: { code: string }) {
     setPending(true);
     setError(null);
     setSavedNote(null);
+    const progress = toast.saving(
+      mode === "issue" ? "กำลังออกใบเสนอราคา…" : "กำลังบันทึกร่าง…",
+    );
 
     try {
       const input = {
@@ -109,17 +114,17 @@ export function QuotationBuilder({ code }: { code: string }) {
       setTerms(saved.terms);
       setIssuedLabel(saved.issuedLabel);
       setIssued(saved.status === "issued");
-      setSavedNote(
-        mode === "issue" ? "ออกใบเสนอราคาแล้ว" : "บันทึกฉบับร่างแล้ว",
-      );
+      const note = mode === "issue" ? "ออกใบเสนอราคาแล้ว" : "บันทึกฉบับร่างแล้ว";
+      setSavedNote(note);
       await refresh();
+      progress.success(note);
     } catch (saveError) {
-      setError(
-        reportError(
-          saveError,
-          mode === "issue" ? "ออกใบไม่สำเร็จ" : "บันทึกร่างไม่สำเร็จ",
-        ),
+      const message = reportError(
+        saveError,
+        mode === "issue" ? "ออกใบไม่สำเร็จ" : "บันทึกร่างไม่สำเร็จ",
       );
+      setError(message);
+      progress.error(message);
     } finally {
       setPending(false);
     }

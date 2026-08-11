@@ -3,6 +3,7 @@ import { AdminDataProvider } from "@/lib/store/admin-store";
 import { getAdmin } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { SupabaseSetupNotice } from "@/components/admin/SupabaseSetupNotice";
+import { ToastProvider } from "@/components/ui/Toast";
 
 /**
  * Gate for every admin screen except the login page, which sits outside this
@@ -22,8 +23,12 @@ export default async function ProtectedAdminLayout({
   if (!admin) redirect("/admin/login");
 
   return (
-    <AdminDataProvider adminName={admin.displayName}>
-      {children}
-    </AdminDataProvider>
+    // Toasts sit outside the data provider so every mutation the store runs can
+    // announce itself.
+    <ToastProvider>
+      <AdminDataProvider adminName={admin.displayName}>
+        {children}
+      </AdminDataProvider>
+    </ToastProvider>
   );
 }

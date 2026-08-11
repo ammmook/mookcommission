@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useToast } from "@/components/ui/Toast";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import {
   DEFAULT_COMMISSION_TYPES,
@@ -157,6 +158,7 @@ export function AdminDataProvider({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     const db = supabaseBrowser();
@@ -196,21 +198,33 @@ export function AdminDataProvider({
    * `paid_at`, `paused_at` and the whole activity log are all produced by
    * triggers, so the row that comes back from a write is the only truth — and
    * a lot close can change several rows at once.
+   *
+   * Every call also drives a toast: "กำลังบันทึก…" while the write and the
+   * reload are in flight, then the result. That is the only progress signal on
+   * screens whose save button sits far from the row that changed.
    */
   const mutate = useCallback(
-    async (action: () => Promise<void>, fallback: string): MutationResult => {
+    async (
+      action: () => Promise<void>,
+      fallback: string,
+      notice?: { pending: string; success: string },
+    ): MutationResult => {
       setBusy(true);
+      const progress = toast.saving(notice?.pending);
       try {
         await action();
         await load();
+        progress.success(notice?.success);
         return null;
       } catch (error) {
-        return reportError(error, fallback);
+        const message = reportError(error, fallback);
+        progress.error(message);
+        return message;
       } finally {
         setBusy(false);
       }
     },
-    [load],
+    [load, toast],
   );
 
   const filledFor = useCallback(
@@ -266,7 +280,10 @@ export function AdminDataProvider({
     (input: CreateLotInput) =>
       mutate(async () => {
         await createLotRow(supabaseBrowser(), input.capacity);
-      }, "สร้างล็อตไม่สำเร็จ"),
+      }, "สร้างล็อตไม่สำเร็จ", {
+        pending: "กำลังสร้างล็อต…",
+        success: "สร้างล็อตแล้ว",
+      }),
     [mutate],
   );
 
@@ -282,7 +299,10 @@ export function AdminDataProvider({
     (lotId: string, status: LotStatus) =>
       mutate(async () => {
         await setLotStatusRow(supabaseBrowser(), lotNumberOf(lotId), status);
-      }, "เปลี่ยนสถานะล็อตไม่สำเร็จ"),
+      }, "เปลี่ยนสถานะล็อตไม่สำเร็จ", {
+        pending: "กำลังเปลี่ยนสถานะล็อต…",
+        success: "เปลี่ยนสถานะล็อตแล้ว",
+      }),
     [mutate],
   );
 
@@ -309,7 +329,7 @@ export function AdminDataProvider({
         }
 
         await deleteLotRow(db, lotNumber);
-      }, "ลบล็อตไม่สำเร็จ"),
+      }, "ลบล็อตไม่สำเร็จ", { pending: "กำลังลบล็อต…", success: "ลบล็อตแล้ว" }),
     [mutate, customersInLot],
   );
 
@@ -333,7 +353,10 @@ export function AdminDataProvider({
           note: input.note,
           email: input.email,
         });
-      }, "เพิ่มลูกค้าไม่สำเร็จ");
+      }, "เพิ่มลูกค้าไม่สำเร็จ", {
+        pending: "กำลังเพิ่มลูกค้า…",
+        success: "เพิ่มลูกค้าแล้ว",
+      });
     },
     [mutate],
   );
@@ -342,7 +365,10 @@ export function AdminDataProvider({
     (customerId: string, toLotId: string) =>
       mutate(async () => {
         await moveQueueEntry(supabaseBrowser(), customerId, lotNumberOf(toLotId));
-      }, "ย้ายลูกค้าไม่สำเร็จ"),
+      }, "ย้ายลูกค้าไม่สำเร็จ", {
+        pending: "กำลังย้ายคิว…",
+        success: "ย้ายคิวแล้ว",
+      }),
     [mutate],
   );
 
@@ -350,7 +376,10 @@ export function AdminDataProvider({
     (customerId: string) =>
       mutate(async () => {
         await deleteQueueEntry(supabaseBrowser(), customerId);
-      }, "ลบลูกค้าไม่สำเร็จ"),
+      }, "ลบลูกค้าไม่สำเร็จ", {
+        pending: "กำลังลบลูกค้า…",
+        success: "ลบลูกค้าแล้ว",
+      }),
     [mutate],
   );
 
