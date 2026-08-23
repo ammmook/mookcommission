@@ -42,6 +42,7 @@ interface DetailsForm {
   dimensions: string;
   code: string;
   note: string;
+  contact: string;
   email: string;
 }
 
@@ -52,6 +53,7 @@ function formFor(customer: Customer): DetailsForm {
     dimensions: customer.commission.dimensions,
     code: customer.code,
     note: customer.commission.note,
+    contact: customer.contact ?? "",
     email: customer.email ?? "",
   };
 }
@@ -110,6 +112,7 @@ export function CustomerEditor({ code }: { code: string }) {
   const save = async () => {
     const message = await updateCustomer(customer.id, {
       code: details.code,
+      contact: details.contact,
       email: details.email,
       commission: {
         type: details.type,
@@ -295,7 +298,17 @@ export function CustomerEditor({ code }: { code: string }) {
                   }
                 />
               </Field>
-              <Field label="อีเมลลูกค้า" htmlFor="edit-email" full>
+              <Field label="ช่องทางติดต่อ" htmlFor="edit-contact">
+                <Input
+                  id="edit-contact"
+                  value={details.contact}
+                  placeholder="IG / Discord / เบอร์โทร"
+                  onChange={(event) =>
+                    setForm({ ...details, contact: event.target.value })
+                  }
+                />
+              </Field>
+              <Field label="อีเมลลูกค้า" htmlFor="edit-email">
                 <Input
                   id="edit-email"
                   type="email"

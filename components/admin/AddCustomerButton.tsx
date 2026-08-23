@@ -15,6 +15,7 @@ const blank = {
   type: "",
   characters: 1,
   note: "",
+  contact: "",
   email: "",
 };
 
@@ -102,8 +103,18 @@ export function AddCustomerButton({ compact }: { compact?: boolean }) {
               }
             />
           </Field>
-          {/* Email spans the row so it sits directly under name + code. */}
-          <Field label="อีเมลลูกค้า" htmlFor="new-email" full>
+          {/* Contact + email share the row directly under name + code. */}
+          <Field label="ช่องทางติดต่อ" htmlFor="new-contact">
+            <Input
+              id="new-contact"
+              value={form.contact}
+              placeholder="IG / Discord / เบอร์โทร"
+              onChange={(event) =>
+                setForm({ ...form, contact: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="อีเมลลูกค้า" htmlFor="new-email">
             <Input
               id="new-email"
               type="email"

@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/cn";
-import { siteMark } from "@/lib/site";
+import { SITE_MARK_SRC } from "@/lib/site";
 import { useSiteSettings } from "@/lib/store/site-settings";
 
 interface LogoProps {
@@ -24,20 +25,20 @@ export function Logo({
   wordClassName,
 }: LogoProps) {
   const { studioName, contactHandle } = useSiteSettings();
-  const markSize = size === "sm" ? "size-7.5 text-sm" : "size-8.5 text-[15px]";
+  const markSize = size === "sm" ? "size-7.5" : "size-8.5";
   const wordSize = size === "sm" ? "text-base" : "text-[17px] sm:text-lg";
 
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <span
+      <Image
+        src={SITE_MARK_SRC}
+        alt=""
         aria-hidden="true"
-        className={cn(
-          "grid shrink-0 place-items-center rounded-xl bg-linear-135 from-coral to-amber font-display font-bold text-white",
-          markSize,
-        )}
-      >
-        {siteMark(studioName)}
-      </span>
+        width={68}
+        height={68}
+        priority
+        className={cn("shrink-0 object-contain", markSize)}
+      />
       <span
         className={cn(
           "font-display font-bold whitespace-nowrap",

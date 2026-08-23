@@ -14,7 +14,5 @@ export const FALLBACK_SITE: SiteSettings = {
   contactHandle: null,
 };
 
-/** First character of the studio name, for the square logo mark. */
-export function siteMark(studioName: string): string {
-  return studioName.trim().charAt(0) || "•";
-}
+/** Studio mark artwork shown beside the wordmark. Lives in `public/assets`. */
+export const SITE_MARK_SRC = "/assets/sunee-snapshot.png";

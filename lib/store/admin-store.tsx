@@ -123,6 +123,7 @@ export interface NewCustomerInput {
   type: string;
   characters: number;
   note: string;
+  contact: string;
   email: string;
 }
 
@@ -351,6 +352,7 @@ export function AdminDataProvider({
           commissionType: input.type,
           characterCount: input.characters,
           note: input.note,
+          contact: input.contact,
           email: input.email,
         });
       }, "เพิ่มลูกค้าไม่สำเร็จ", {
